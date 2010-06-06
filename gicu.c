@@ -93,11 +93,11 @@ static void run (
 	values[0].type = GIMP_PDB_STATUS;
 	values[0].data.d_status = status;
 
-	/* Getting run_mode - we won't display a dialog if
-	 * we are in NONINTERACTIVE mode */
+	/* Getting run_mode */
 	run_mode = param[0].data.d_int32;
 
 	if ( run_mode != GIMP_RUN_NONINTERACTIVE)
-		g_message("Hello, world!\n");
+		g_message("values = return werte!\nparam = uebergebene parameter und der 0te ist run-mode");
+
 }
 
