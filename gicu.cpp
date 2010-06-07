@@ -31,6 +31,7 @@ static void run   (
 		const GimpParam *param,
 		gint            *nreturn_vals,
 		GimpParam       **return_vals);
+static void blur (GimpDrawable *drawable);
 
 
 //
@@ -124,7 +125,7 @@ static void run (
 	GimpPDBStatusType status = GIMP_PDB_SUCCESS;
 	GimpRunMode run_mode;
 
-	/* CUDA */
+	GimpDrawable     *drawable;
 
 	/* Setting mandatory output values */
 	*nreturn_vals = 1;
@@ -136,20 +137,143 @@ static void run (
 	/* Getting run_mode */
 	run_mode = (GimpRunMode)param[0].data.d_int32;
 
+	/*
 	if ( run_mode != GIMP_RUN_NONINTERACTIVE)
 		g_message("values = return werte!\n\
 param = uebergebene parameter und der 0te ist run-mode");
+	*/
 
 
 	int deviceCount = 5;
 	cudaGetDeviceCount(&deviceCount);
 
+	/* Prints the num of all avail. CUDA cards */
+	/*
 	g_message("blub: %d\n", deviceCount);
+	*/
 
 	unsigned char *speicher;
 	size_t size;
 	size = 5 * 5 * sizeof (unsigned char);
 	cutilSafeCall(cudaMallocHost((void**)&speicher, size));
 
+	drawable = gimp_drawable_get( param[2].data.d_drawable);
+
+	gimp_progress_init ("My Blur...");
+
+	blur (drawable);
+
+	gimp_displays_flush ();
+	gimp_drawable_detach (drawable);
+
+}
+
+static void blur (GimpDrawable *drawable) {
+    gint         i, j, k, channels;
+    gint         x1, y1, x2, y2;
+    GimpPixelRgn rgn_in, rgn_out;
+    guchar       output[4];
+
+    /* Gets upper left and lower right coordinates,
+     * and layers number in the image */
+    gimp_drawable_mask_bounds (drawable->drawable_id,
+            &x1, &y1,
+            &x2, &y2);
+    channels = gimp_drawable_bpp (drawable->drawable_id);
+
+g_print("x1: %d\ny1: %d\nx2: %d\ny2: %d\n", x1, y1, x2, y2);
+
+x2 += 20;
+y2 += 20;
+
+g_print("x1: %d\ny1: %d\nx2: %d\ny2: %d\n\n", x1, y1, x2, y2);
+
+
+    /* Initialises two PixelRgns, one to read original data,
+     * and the other to write output data. That second one will
+     * be merged at the end by the call to
+     * gimp_drawable_merge_shadow() */
+    gimp_pixel_rgn_init (&rgn_in,
+            drawable,
+            x1, y1,
+            x2 - x1, y2 - y1, 
+            FALSE, FALSE);
+    gimp_pixel_rgn_init (&rgn_out,
+            drawable,
+            x1, y1,
+            x2 - x1, y2 - y1, 
+            TRUE, TRUE);
+
+    for (i = x1; i < x2; i++)
+    {
+        for (j = y1; j < y2; j++)
+        {
+            guchar pixel[9][4];
+
+            /* Get nine pixels */
+            gimp_pixel_rgn_get_pixel (&rgn_in,
+                    pixel[0],
+                    MAX (i - 1, x1),
+                    MAX (j - 1, y1));
+            gimp_pixel_rgn_get_pixel (&rgn_in,
+                    pixel[1],
+                    MAX (i - 1, x1),
+                    j);
+            gimp_pixel_rgn_get_pixel (&rgn_in,
+                    pixel[2],
+                    MAX (i - 1, x1),
+                    MIN (j + 1, y2 - 1));
+
+            gimp_pixel_rgn_get_pixel (&rgn_in,
+                    pixel[3],
+                    i,
+                    MAX (j - 1, y1));
+            gimp_pixel_rgn_get_pixel (&rgn_in,
+                    pixel[4],
+                    i,
+                    j);
+            gimp_pixel_rgn_get_pixel (&rgn_in,
+                    pixel[5],
+                    i,
+                    MIN (j + 1, y2 - 1));
+
+            gimp_pixel_rgn_get_pixel (&rgn_in,
+                    pixel[6],
+                    MIN (i + 1, x2 - 1),
+                    MAX (j - 1, y1));
+            gimp_pixel_rgn_get_pixel (&rgn_in,
+                    pixel[7],
+                    MIN (i + 1, x2 - 1),
+                    j);
+            gimp_pixel_rgn_get_pixel (&rgn_in,
+                    pixel[8],
+                    MIN (i + 1, x2 - 1),
+                    MIN (j + 1, y2 - 1));
+
+            /* For each layer, compute the average of the
+             * nine */
+            for (k = 0; k < channels; k++)
+            {
+                int tmp, sum = 0;
+                for (tmp = 0; tmp < 9; tmp++)
+                    sum += pixel[tmp][k];
+                output[k] = sum / 9;
+            }
+
+            gimp_pixel_rgn_set_pixel (&rgn_out,
+                    output,
+                    i, j);
+        }
+
+        if (i % 10 == 0)
+            gimp_progress_update ((gdouble) (i - x1) / (gdouble) (x2 - x1));
+    }
+
+    /*  Update the modified region */
+    gimp_drawable_flush (drawable);
+    gimp_drawable_merge_shadow (drawable->drawable_id, TRUE);
+    gimp_drawable_update (drawable->drawable_id,
+            x1, y1,
+            x2 - x1, y2 - y1);
 }
 
