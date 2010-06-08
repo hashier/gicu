@@ -69,7 +69,7 @@
     <value type="QString">MPD_HOST=adminpw@localhost</value>
     <value type="QString">NNTPSERVER=news.online.de</value>
     <value type="QString">OGLE_USE_XV=0</value>
-    <value type="QString">OLDPWD=/home/hashier</value>
+    <value type="QString">OLDPWD=/home/hashier/source/projekte/gicu/build</value>
     <value type="QString">OPENGL_PROFILE=nvidia</value>
     <value type="QString">ORBIT_SOCKETDIR=/tmp/orbit-hashier</value>
     <value type="QString">PAGER=less -i</value>

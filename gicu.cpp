@@ -24,15 +24,8 @@
 //
 // HEADER
 //
-static void query (void);
-static void run   (
-		const gchar     *name,
-		gint            nparams,
-		const GimpParam *param,
-		gint            *nreturn_vals,
-		GimpParam       **return_vals);
-static void blur (GimpDrawable *drawable);
-
+#include "cuda.h"
+#include "gicu.h"
 
 //
 // Basics
@@ -165,6 +158,8 @@ param = uebergebene parameter und der 0te ist run-mode");
 
 	gimp_displays_flush ();
 	gimp_drawable_detach (drawable);
+
+	test();
 
 }
 

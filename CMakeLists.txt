@@ -41,7 +41,7 @@ include_directories(${CUDA_INCLUDE_DIRS})
 
 CUDA_ADD_EXECUTABLE( ${PROJECT_NAME}
   gicu.cpp
-  #cuda.cu
+  cuda.cu
 )
 
 #ADD_EXECUTABLE( ${PROJECT_NAME} ${${PROJECT_NAME}_SRCS} )
