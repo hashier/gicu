@@ -1,6 +1,3 @@
-#ifndef __cuda_H_
-#define __cuda_H_
-
 #include "cuda.h"
 
 
@@ -16,7 +13,3 @@ __global__ void kernel()
    unsigned int x = blockIdx.x*blockDim.x + threadIdx.x;
    unsigned int y = blockIdx.y*blockDim.y + threadIdx.y;
 }
-
-
-
-#endif

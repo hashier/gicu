@@ -11,8 +11,8 @@ macro_ensure_out_of_source_build("${PROJECT_NAME} requires an out of source buil
 
 PROJECT(${PROJECT_NAME})
 
-SET(CMAKE_CXX_FLAGS "-g")
-SET(CMAKE_CXX_FLAGS_DEBUG)
+#SET(CMAKE_CXX_FLAGS "-g")
+#SET(CMAKE_CXX_FLAGS_DEBUG)
 
 SET( ${PROJECT_NAME}_SRCS
      gicu.cpp )
