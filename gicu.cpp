@@ -6,30 +6,26 @@
  * Gimp Plug-In welches die Grafikkarte benutzt um die Berechnungen
  * zu beschleunigen
  *
+ * Copyright
+ * Christopher Loessl (4044723)
+ *
+ * License
+ * as-is
+ *
+ * Coded for
+ * PADI (Praktische Aspekte der Informatiker)
+ * Institut CG
+ *
  */
 
-/* System headers */
 
-
-/* gimp */
-#include <libgimp/gimp.h>
-
-
-/* CUDA */
-#include <cuda.h>
-#include <cuda_runtime.h>
-#include <cutil_inline.h>
-
-
-//
-// HEADER
-//
+/* eigene */
 #include "cuda.h"
 #include "gicu.h"
 
-//
+
 // Basics
-//
+// Function pnts to the functions
 GimpPlugInInfo PLUG_IN_INFO = {
 	NULL,
 	NULL,
@@ -38,12 +34,10 @@ GimpPlugInInfo PLUG_IN_INFO = {
 };
 
 
-//
 // Main
-//
 MAIN()
 
-static void query (void) {
+static void query( void) {
 
 	char gicu_help[] =
 		"In the beginning, there was Wilber, Wilber the gimp. \
@@ -99,13 +93,13 @@ kinds, and the drawables of the mask according to their kinds...";
 			NULL);
 
 	/* Where to put the plugin */
-	gimp_plugin_menu_register (
+	gimp_plugin_menu_register(
 			"plug-in-gicu",
 			"<Image>/Filters/CUDA");
 }
 
 
-static void run (
+static void run(
 		const gchar     *name,
 		gint            nparams,
 		const GimpParam *param,
@@ -114,140 +108,100 @@ static void run (
 
 	/* return thingy */
 	static GimpParam values[1];
-
 	GimpPDBStatusType status = GIMP_PDB_SUCCESS;
 	GimpRunMode run_mode;
-
-	GimpDrawable     *drawable;
+	GimpDrawable *drawable;
 
 	/* Setting mandatory output values */
 	*nreturn_vals = 1;
 	*return_vals = values;
-
 	values[0].type = GIMP_PDB_STATUS;
 	values[0].data.d_status = status;
 
 	/* Getting run_mode */
 	run_mode = (GimpRunMode)param[0].data.d_int32;
 
-	/*
-	if ( run_mode != GIMP_RUN_NONINTERACTIVE)
-		g_message("values = return werte!\n\
-param = uebergebene parameter und der 0te ist run-mode");
-	*/
-
-
-	int deviceCount = 5;
-	cudaGetDeviceCount(&deviceCount);
-
-	/* Prints the num of all avail. CUDA cards */
-	/*
-	g_message("blub: %d\n", deviceCount);
-	*/
-
-	unsigned char *speicher;
-	size_t size;
-	size = 5 * 5 * sizeof (unsigned char);
-	cutilSafeCall(cudaMallocHost((void**)&speicher, size));
-
+	/* Where to paint */
 	drawable = gimp_drawable_get( param[2].data.d_drawable);
 
-	gimp_progress_init ("My Blur...");
+	gimp_progress_init ("CUDA-Filter...");
+	cuda (drawable);
 
-	blur (drawable);
-
-	gimp_displays_flush ();
-	gimp_drawable_detach (drawable);
-
-	test();
+	gimp_displays_flush();
+	gimp_drawable_detach( drawable);
 
 }
 
 
-static void blur (GimpDrawable *drawable) {
-    gint         i, j, k, channels;
-    gint         x1, y1, x2, y2;
-    GimpPixelRgn rgn_in, rgn_out;
-    guchar      *row1, *row2, *row3;
-    guchar      *outrow;
+static void cuda( GimpDrawable *drawable) {
+	gint         channels;
+	gint         x1, y1, x2, y2;
+	GimpPixelRgn rgn_in, rgn_out;
+	gint         width, height;
 
-    gimp_drawable_mask_bounds (drawable->drawable_id,
-            &x1, &y1,
-            &x2, &y2);
-    channels = gimp_drawable_bpp (drawable->drawable_id);
+	size_t size;
+	guchar *h_image;
+	guchar *d_image;
 
-    gimp_pixel_rgn_init (&rgn_in,
-            drawable,
-            x1, y1,
-            x2 - x1, y2 - y1,
-            FALSE, FALSE);
-    gimp_pixel_rgn_init (&rgn_out,
-            drawable,
-            x1, y1,
-            x2 - x1, y2 - y1,
-            TRUE, TRUE);
+	gimp_drawable_mask_bounds (
+			drawable->drawable_id,
+			&x1, &y1,
+			&x2, &y2);
 
-    /* Initialise enough memory for row1, row2, row3, outrow */
-    row1 = g_new (guchar, channels * (x2 - x1));
-    row2 = g_new (guchar, channels * (x2 - x1));
-    row3 = g_new (guchar, channels * (x2 - x1));
-    outrow = g_new (guchar, channels * (x2 - x1));
+	channels = gimp_drawable_bpp( drawable->drawable_id);
+	width = x2 - x1;
+	height = y2 - y1;
+	size = width * height * channels;
 
-    for (i = y1; i < y2; i++)
-    {
-        /* Get row i-1, i, i+1 */
-        gimp_pixel_rgn_get_row (&rgn_in,
-                row1,
-                x1, MAX (y1, i - 1),
-                x2 - x1);
-        gimp_pixel_rgn_get_row (&rgn_in,
-                row2,
-                x1, i,
-                x2 - x1);
-        gimp_pixel_rgn_get_row (&rgn_in,
-                row3,
-                x1, MIN (y2 - 1, i + 1),
-                x2 - x1);
+	/* allocate mem on the gpu */
+	cutilSafeCall( cudaMalloc( (void**)&d_image, size));
 
-        for (j = x1; j < x2; j++)
-        {
-            /* For each layer, compute the average of the nine
-             * pixels */
-            for (k = 0; k < channels; k++)
-            {
-                int sum = 0;
-                sum = row1[channels * MAX ((j - 1 - x1), 0) + k]           +
-                    row1[channels * (j - x1) + k]                        +
-                    row1[channels * MIN ((j + 1 - x1), x2 - x1 - 1) + k] +
-                    row2[channels * MAX ((j - 1 - x1), 0) + k]           +
-                    row2[channels * (j - x1) + k]                        +
-                    row2[channels * MIN ((j + 1 - x1), x2 - x1 - 1) + k] +
-                    row3[channels * MAX ((j - 1 - x1), 0) + k]           +
-                    row3[channels * (j - x1) + k]                        +
-                    row3[channels * MIN ((j + 1 - x1), x2 - x1 - 1) + k];
-                outrow[channels * (j - x1) + k] = sum / 9;
-            }
+	gimp_pixel_rgn_init(
+			&rgn_in,
+			drawable,
+			x1, y1,
+			width, height,
+			FALSE, FALSE);
+	gimp_pixel_rgn_init(
+			&rgn_out,
+			drawable,
+			x1, y1,
+			width, height,
+			TRUE, TRUE);
 
-        }
+	/* where the final image will be saved in the host memory */
+	/* allocate mem for output image */
+// 	cutilSafeCall( cudaMallocHost( (void**)&h_image, size));
+	h_image = g_new( guchar, width * height * channels);
+	gimp_pixel_rgn_get_rect( &rgn_in, h_image, x1, y1, width, height);
 
-        gimp_pixel_rgn_set_row (&rgn_out,
-                outrow,
-                x1, i,
-                x2 - x1);
+	gimp_progress_init ( "CUDA-Gimp-Plug-In");
+	gimp_progress_pulse();
 
-        if (i % 10 == 0)
-            gimp_progress_update ((gdouble) (i - y1) / (gdouble) (y2 - y1));
-    }
+	/* CUDA cp image */
+	gimp_progress_set_text( "Copying the image to graphics card");
+	cutilSafeCall( (cudaMemcpy( d_image, h_image, size, cudaMemcpyHostToDevice)));
+	
+	/* CUDA running kernel */
+	gimp_progress_set_text( "Running CUDA-Kernel");
+	filter( d_image, width, height);
+	
+	/* CUDA cp image back to host */
+	gimp_progress_set_text( "Copying the image back to host");
+	cutilSafeCall( (cudaMemcpy( h_image, d_image, size, cudaMemcpyDeviceToHost)));
 
-    g_free (row1);
-    g_free (row2);
-    g_free (row3);
-    g_free (outrow);
+	gimp_progress_end();
 
-    gimp_drawable_flush (drawable);
-    gimp_drawable_merge_shadow (drawable->drawable_id, TRUE);
-    gimp_drawable_update (drawable->drawable_id,
-            x1, y1,
-            x2 - x1, y2 - y1);
+	/* save image back to gimp core */
+	gimp_pixel_rgn_set_rect (
+			&rgn_out,
+			h_image,
+			x1, y1,
+			width, height);
+
+	gimp_drawable_flush( drawable);
+	gimp_drawable_merge_shadow( drawable->drawable_id, TRUE);
+	gimp_drawable_update( drawable->drawable_id, x1, y1, width, height);
+
 }
 
