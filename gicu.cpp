@@ -172,7 +172,7 @@ static void cuda( GimpDrawable *drawable) {
 	/* where the final image will be saved in the host memory */
 	/* allocate mem for output image */
 // 	cutilSafeCall( cudaMallocHost( (void**)&h_image, size));
-	h_image = g_new( guchar, width * height * channels);
+	h_image = g_new( guchar, size);
 	gimp_pixel_rgn_get_rect( &rgn_in, h_image, x1, y1, width, height);
 
 	gimp_progress_init ( "CUDA-Gimp-Plug-In");
@@ -184,7 +184,9 @@ static void cuda( GimpDrawable *drawable) {
 	
 	/* CUDA running kernel */
 	gimp_progress_set_text( "Running CUDA-Kernel");
-	filter( d_image, width, height);
+// 	g_message("test: %d\n", channels);
+// 	g_message("w: %d\nh: %d\n", width, height);
+	filter( d_image, width, height, channels);
 	
 	/* CUDA cp image back to host */
 	gimp_progress_set_text( "Copying the image back to host");

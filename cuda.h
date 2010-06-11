@@ -9,7 +9,7 @@
 #include <libgimp/gimp.h>
 
 
-extern "C" void filter( guchar* d_image, gint width, gint height);
-__global__ void kernel( guchar* d_image, gint width, gint height);
+extern "C" void filter( guchar* d_image, gint width, gint height, guint channels);
+__global__ void kernel( guchar* d_image, gint width, gint height, guint channels, guint step);
 
 #endif
