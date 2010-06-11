@@ -19,17 +19,34 @@ SET( ${PROJECT_NAME}_SRCS
 FIND_PACKAGE(GTK2 COMPONENTS gtk)
 FIND_PACKAGE(CUDA)
 
+IF ( NOT CUDA_TOOLKIT_ROOT_DIR)
+	SET( CUDA_TOOLKIT_ROOT_DIR
+		/media/HASSTICK/cuda
+		/afs/tu-bs.de/usr/usr53/y0053765/cuda/cuda
+		)
+ENDIF ( NOT CUDA_TOOLKIT_ROOT_DIR)
+
 INCLUDE_DIRECTORIES(
 	${GTK2_INCLUDE_DIRS}
- 	${CURL_INCLUDE_DIR}
+	${CURL_INCLUDE_DIR}
 	/usr/include/gimp-2.0
 	/usr/include/glib-2.0
+
 	/usr/lib64/glib-2.0/include
-	/opt/cuda/include
 	/opt/cuda/sdk/C/common/inc
+
+	/afs/tu-bs.de/usr/usr53/y0053765/src/usr/include/gimp-2.0
+	/tmp/sdk/C/common/inc/
 )
 
 INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
+
+CUDA_INCLUDE_DIRECTORIES (
+	/opt/cuda/include
+	/opt/cuda/sdk/C/common/inc
+
+	/tmp/sdk/C/common/inc
+	)
 
 LINK_DIRECTORIES(
 	/opt/cuda/lib64
@@ -42,7 +59,7 @@ CUDA_ADD_EXECUTABLE( ${PROJECT_NAME}
 )
 
 #ADD_EXECUTABLE( ${PROJECT_NAME} ${${PROJECT_NAME}_SRCS} )
-TARGET_LINK_LIBRARIES( ${PROJECT_NAME} ${GTK2_LIBRARIES} cutil cudart gimp-2.0)
+TARGET_LINK_LIBRARIES( ${PROJECT_NAME} ${GTK2_LIBRARIES} ${CUDA_LIBRARIES} gimp-2.0)
 
 #INSTALL(FILES ${files} DESTINATION include)
 INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/gicu DESTINATION ~/.gimp-2.6/plug-ins/)
