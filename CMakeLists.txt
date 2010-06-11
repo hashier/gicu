@@ -33,6 +33,7 @@ INCLUDE_DIRECTORIES(
 	/usr/include/glib-2.0
 
 	/usr/lib64/glib-2.0/include
+
 	/opt/cuda/sdk/C/common/inc
 
 	/afs/tu-bs.de/usr/usr53/y0053765/src/usr/include/gimp-2.0
@@ -42,7 +43,6 @@ INCLUDE_DIRECTORIES(
 INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
 
 CUDA_INCLUDE_DIRECTORIES (
-	/opt/cuda/include
 	/opt/cuda/sdk/C/common/inc
 
 	/tmp/sdk/C/common/inc

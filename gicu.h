@@ -12,6 +12,5 @@ static void run(
 		gint            *nreturn_vals,
 		GimpParam       **return_vals);
 static void cuda( GimpDrawable *drawable);
-static void blur( GimpDrawable *drawable);
 
 #endif

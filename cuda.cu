@@ -1,5 +1,5 @@
 #include "cuda.h"
-#include "gicu.h"
+//#include "gicu.h"
 
 extern "C" void filter( guchar *d_image, gint width, gint height, guint channels) {
 
