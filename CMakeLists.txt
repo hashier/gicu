@@ -14,7 +14,7 @@ PROJECT(${PROJECT_NAME})
 #SET(CMAKE_CXX_FLAGS_DEBUG "-g -Wall")
 
 SET( ${PROJECT_NAME}_SRCS
-     gicu.cpp )
+	gicu.cpp )
 
 FIND_PACKAGE(GTK2 COMPONENTS gtk)
 FIND_PACKAGE(CUDA)
@@ -54,8 +54,10 @@ LINK_DIRECTORIES(
 )
 
 CUDA_ADD_EXECUTABLE( ${PROJECT_NAME}
-  gicu.cpp
-  cuda.cu
+	gicu.cpp
+	cuda.cu
+	grey.cu
+	box.cu
 )
 
 #ADD_EXECUTABLE( ${PROJECT_NAME} ${${PROJECT_NAME}_SRCS} )

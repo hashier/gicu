@@ -124,7 +124,6 @@ static void run(
 	/* Where to paint */
 	drawable = gimp_drawable_get( param[2].data.d_drawable);
 
-	gimp_progress_init ("CUDA-Filter...");
 	cuda (drawable);
 
 	gimp_displays_flush();
@@ -142,6 +141,8 @@ static void cuda( GimpDrawable *drawable) {
 	size_t size;
 	guchar *h_image;
 	guchar *d_image;
+
+	gimp_progress_init ("CUDA-Filter...");
 
 	gimp_drawable_mask_bounds (
 			drawable->drawable_id,
@@ -186,7 +187,10 @@ static void cuda( GimpDrawable *drawable) {
 	gimp_progress_set_text( "Running CUDA-Kernel");
 // 	g_message("test: %d\n", channels);
 // 	g_message("w: %d\nh: %d\n", width, height);
-	filter( d_image, width, height, channels);
+// 	cuda_filter mode;
+	cuda_filter = GREY;
+	cuda_filter = BOX;
+	filter( d_image, width, height, channels, cuda_filter);
 	
 	/* CUDA cp image back to host */
 	gimp_progress_set_text( "Copying the image back to host");
