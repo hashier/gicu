@@ -58,6 +58,7 @@ CUDA_ADD_EXECUTABLE( ${PROJECT_NAME}
 	cuda.cu
 	grey.cu
 	box.cu
+	gui.cpp
 )
 
 #ADD_EXECUTABLE( ${PROJECT_NAME} ${${PROJECT_NAME}_SRCS} )

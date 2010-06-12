@@ -108,11 +108,12 @@ static void run(
 
 	/* return thingy */
 	static GimpParam values[1];
-	GimpPDBStatusType status = GIMP_PDB_SUCCESS;
+	GimpPDBStatusType status;
 	GimpRunMode run_mode;
 	GimpDrawable *drawable;
 
 	/* Setting mandatory output values */
+	status = GIMP_PDB_SUCCESS;
 	*nreturn_vals = 1;
 	*return_vals = values;
 	values[0].type = GIMP_PDB_STATUS;
@@ -124,13 +125,17 @@ static void run(
 	/* Where to paint */
 	drawable = gimp_drawable_get( param[2].data.d_drawable);
 
-	cuda (drawable);
+	cuda_init ();
+	cuda( drawable);
 
 	gimp_displays_flush();
 	gimp_drawable_detach( drawable);
 
 }
 
+static void cuda_init( ) {
+
+}
 
 static void cuda( GimpDrawable *drawable) {
 	gint         channels;
@@ -187,7 +192,7 @@ static void cuda( GimpDrawable *drawable) {
 	gimp_progress_set_text( "Running CUDA-Kernel");
 // 	g_message("test: %d\n", channels);
 // 	g_message("w: %d\nh: %d\n", width, height);
-// 	cuda_filter mode;
+	cuda_filter cuda_filter;
 	cuda_filter = GREY;
 	cuda_filter = BOX;
 	filter( d_image, width, height, channels, cuda_filter);
