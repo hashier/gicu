@@ -71,7 +71,15 @@ kinds, and the drawables of the mask according to their kinds...";
 			GIMP_PDB_DRAWABLE,
 			(gchar*) "drawable",
 			(gchar*) "Input drawable"
-		}
+		},
+		{
+			GIMP_PDB_INT32,
+			(gchar*) "radius",
+			(gchar*) "set the radius of the kernel"
+		},
+			GIMP_PDB_INT32,
+			(gchar*) "offset",
+			(gchar*) "to reduce the noice"
 	};
 
 	/* install procedure
@@ -87,10 +95,10 @@ kinds, and the drawables of the mask according to their kinds...";
 			"_CUDA-Filter",
 			"RGB*, GRAY*",
 			GIMP_PLUGIN,
-			G_N_ELEMENTS (args), // this parameters are passed to the function
-			0,                   // num of parameters
-			args,                // same but return thingy stuff
-			NULL);
+			G_N_ELEMENTS (args), // this number of parameters are passed to the function
+			0,                   // num of parameters returned by the function
+			args,                // where is all the stuff saved (where to get the info)
+			NULL);               // where to save the information
 
 	/* Where to put the plugin */
 	gimp_plugin_menu_register(
@@ -122,14 +130,66 @@ static void run(
 	/* Getting run_mode */
 	run_mode = (GimpRunMode)param[0].data.d_int32;
 
+	g_message("nparams: %d\n", nparams);
+	filterParm.radius = 3;
+	g_message("nparams: %d\n", nparams);
+
 	/* Where to paint */
 	drawable = gimp_drawable_get( param[2].data.d_drawable);
+
+	switch ( run_mode) {
+		case GIMP_RUN_INTERACTIVE:
+			/* Get parameters from last run */
+			gimp_get_data( "plug-in-gicu", &filterParm);
+
+			if (! para_dialog (drawable)) {
+				return;
+			}
+			break;
+
+		case GIMP_RUN_NONINTERACTIVE:
+			/* 0 run mode
+			 * 1 image
+			 * 2 drawable
+			 * 3 radius
+			 * 4 offset
+			 */
+			if ( nparams != 5) {
+				status = GIMP_PDB_CALLING_ERROR;
+			}
+			if ( status == GIMP_PDB_SUCCESS) {
+				filterParm.radius = param[3].data.d_int32;
+				filterParm.offset = param[4].data.d_int32;
+			}
+			break;
+
+		case GIMP_RUN_WITH_LAST_VALS:
+			/*  Get options last values if needed  */
+			gimp_get_data( "plug-in-gicu", &filterParm);
+			break;
+
+		default:
+			break;
+	}
 
 	cuda( drawable);
 
 	gimp_displays_flush();
 	gimp_drawable_detach( drawable);
 
+	/*  Finally, set options in the core  */
+	if ( run_mode == GIMP_RUN_INTERACTIVE) {
+		gimp_set_data( "plug-in-gicu", &filterParm, sizeof( FilterParameter));
+	}
+
+}
+
+
+static gboolean para_dialog( GimpDrawable *drawable) {
+	/* did the config dialog start up correctly? */
+	gboolean running = false;
+	
+	return running;
 }
 
 static void cuda( GimpDrawable *drawable) {
@@ -149,7 +209,7 @@ static void cuda( GimpDrawable *drawable) {
 	cuda_filter = BOX;
 
 	
-	gimp_progress_init ("CUDA-Filter...");
+	gimp_progress_init( "CUDA-Filter...");
 
 	gimp_drawable_mask_bounds (
 			drawable->drawable_id,

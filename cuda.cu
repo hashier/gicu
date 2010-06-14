@@ -24,15 +24,20 @@ void filter(
 		case GREY:
 			grey<<< gridDim, blockDim, 0 >>>( d_image, width, height, channels, step);
 			break;
+			
 		case BOX:
 			box<<< gridDim, blockDim, 0 >>>( d_image, width, height, channels, step);
 			break;
+			
 		case SOBEL:
 			break;
+			
 		case AVERAGE:
 			break;
+			
 		default:
 			g_printerr("Filter not found");
+			break;
 	}
 
 }

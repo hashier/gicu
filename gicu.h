@@ -4,13 +4,14 @@
 /* Gimp plug-in header */
 #include <libgimp/gimp.h>
 
-typedef struct _param {
+
+typedef struct _FilterParameter {
 	gint radius;
 	gint offset;
-} Para;
+} FilterParameter;
 
 /* Set up default values for options */
-static Para pvals = {
+static FilterParameter filterParm = {
 	3,  /* radius */
 	5   /* offset */
 };
@@ -24,6 +25,8 @@ static void run(
 		gint            *nreturn_vals,
 		GimpParam       **return_vals);
 static void cuda( GimpDrawable *drawable);
+
+static gboolean para_dialog( GimpDrawable *drawable);
 
 
 #endif
