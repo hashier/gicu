@@ -125,15 +125,10 @@ static void run(
 	/* Where to paint */
 	drawable = gimp_drawable_get( param[2].data.d_drawable);
 
-	cuda_init ();
 	cuda( drawable);
 
 	gimp_displays_flush();
 	gimp_drawable_detach( drawable);
-
-}
-
-static void cuda_init( ) {
 
 }
 
@@ -142,11 +137,18 @@ static void cuda( GimpDrawable *drawable) {
 	gint         x1, y1, x2, y2;
 	GimpPixelRgn rgn_in, rgn_out;
 	gint         width, height;
+	gint         radius = 3;
 
 	size_t size;
 	guchar *h_image;
 	guchar *d_image;
 
+	cuda_filter cuda_filter;
+
+	cuda_filter = GREY;
+	cuda_filter = BOX;
+
+	
 	gimp_progress_init ("CUDA-Filter...");
 
 	gimp_drawable_mask_bounds (
@@ -159,15 +161,17 @@ static void cuda( GimpDrawable *drawable) {
 	height = y2 - y1;
 	size = width * height * channels;
 
-	/* allocate mem on the gpu */
-	cutilSafeCall( cudaMalloc( (void**)&d_image, size));
-
+	/* read data (image) from here */
 	gimp_pixel_rgn_init(
 			&rgn_in,
 			drawable,
 			x1, y1,
 			width, height,
 			FALSE, FALSE);
+
+	/* write new image to here
+	 * and use shadow tiles if ! preview
+	 */
 	gimp_pixel_rgn_init(
 			&rgn_out,
 			drawable,
@@ -175,28 +179,49 @@ static void cuda( GimpDrawable *drawable) {
 			width, height,
 			TRUE, TRUE);
 
+	/* allocate mem on the gpu */
+	cutilSafeCall( cudaMalloc( (void**)&d_image, size));
+
 	/* where the final image will be saved in the host memory */
 	/* allocate mem for output image */
 // 	cutilSafeCall( cudaMallocHost( (void**)&h_image, size));
 	h_image = g_new( guchar, size);
-	gimp_pixel_rgn_get_rect( &rgn_in, h_image, x1, y1, width, height);
 
-	gimp_progress_init ( "CUDA-Gimp-Plug-In");
-	gimp_progress_pulse();
+	/* copy pixel from the rgn_in into the allocated memory h_image */
+	// NOTE
+	// we have to get more pixel because of the radius
+	// TODO implement the radius function from the GUI
+	gimp_pixel_rgn_get_rect(
+			&rgn_in,
+			h_image,
+			x1 - radius, y1 - radius,
+			width + radius, height + radius);
 
+	/* TEST
+	 * can you get pixel that aren't in the region
+	 * yes you can!
+	guchar *pixel = g_new( guchar, 1);
+	gimp_pixel_rgn_get_pixel(&rgn_in,pixel, x1-1,y1);
+	g_message("bla: %d\n", *pixel);
+	*/
+
+	gimp_progress_init( "CUDA-Gimp-Plug-In");
+	gimp_progress_pulse( );
+	
 	/* CUDA cp image */
 	gimp_progress_set_text( "Copying the image to graphics card");
 	cutilSafeCall( (cudaMemcpy( d_image, h_image, size, cudaMemcpyHostToDevice)));
-	
+
+	/* timer */
+// 	GTimer timer = g_timer_new time( );
+
 	/* CUDA running kernel */
 	gimp_progress_set_text( "Running CUDA-Kernel");
-// 	g_message("test: %d\n", channels);
-// 	g_message("w: %d\nh: %d\n", width, height);
-	cuda_filter cuda_filter;
-	cuda_filter = GREY;
-	cuda_filter = BOX;
 	filter( d_image, width, height, channels, cuda_filter);
-	
+
+// 	g_print ("blur() took %g seconds.\n", g_timer_elapsed (timer));
+// 	g_timer_degstroy (timer);
+
 	/* CUDA cp image back to host */
 	gimp_progress_set_text( "Copying the image back to host");
 	cutilSafeCall( (cudaMemcpy( h_image, d_image, size, cudaMemcpyDeviceToHost)));
