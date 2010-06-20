@@ -7,6 +7,6 @@
 #include <gtk/gtk.h>
 #include <glib.h>
 
-static gboolean cuda_dialog (GimpDrawable *drawable);
+gboolean gicu_dialog (GimpDrawable *drawable);
 
 #endif

@@ -26,7 +26,5 @@ static void run(
 		GimpParam       **return_vals);
 static void cuda( GimpDrawable *drawable);
 
-static gboolean para_dialog( GimpDrawable *drawable);
-
 
 #endif

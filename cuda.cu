@@ -22,7 +22,7 @@ void filter(
 
 	switch ( mode) {
 		case GREY:
-			grey<<< gridDim, blockDim, 0 >>>( d_image, width, height, channels, step);
+			greyGRAY<<< gridDim, blockDim, 0 >>>( d_image, width, height, channels, step);
 			break;
 			
 		case BOX:
