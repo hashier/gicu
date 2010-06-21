@@ -13,20 +13,26 @@ extern __shared__ unsigned char LocalBlock[];
 
 void filter(
 		guchar* d_image, gint width, gint height,
-		guint channels, cuda_filter mode,
-		gint radius, gint offset) {
+		guint channels) {
 
 	dim3 blockDim( 16, 16, 1);
-	dim3 gridDim( width / blockDim.x + 1, height / blockDim.y + 1, 1);
+	int x = 0, y = 0;
+	if ( width % blockDim.x)
+		x = 1;
+	if ( height % blockDim.y)
+		y = 1;
+
+	dim3 gridDim( width / blockDim.x + x, height / blockDim.y + y, 1);
 	guint step = channels * width;
 
-	switch ( mode) {
+
+	switch ( filterParm.cuda_filter) {
 		case GREY:
 			greyGRAY<<< gridDim, blockDim, 0 >>>( d_image, width, height, channels, step);
 			break;
 			
 		case BOX:
-			box<<< gridDim, blockDim, 0 >>>( d_image, width, height, channels, step);
+			box<<< gridDim, blockDim, 0 >>>( d_image, width, height, channels, step, filterParm);
 			break;
 			
 		case SOBEL:

@@ -3,18 +3,26 @@
 
 /* Gimp plug-in header */
 #include <libgimp/gimp.h>
+#include <libgimpwidgets/gimpwidgetstypes.h>
+
+
+
+typedef enum _cuda_filter {
+	GREY,
+	BOX,
+	SOBEL,
+	AVERAGE
+} cuda_filter;
 
 
 typedef struct _FilterParameter {
 	gint radius;
 	gint offset;
+	gboolean preview;
+	enum _cuda_filter cuda_filter;
 } FilterParameter;
 
-/* Set up default values for options */
-static FilterParameter filterParm = {
-	3,  /* radius */
-	5   /* offset */
-};
+extern FilterParameter filterParm;
 
 
 static void query( void);
@@ -24,7 +32,7 @@ static void run(
 		const GimpParam *param,
 		gint            *nreturn_vals,
 		GimpParam       **return_vals);
-static void cuda( GimpDrawable *drawable);
+void cuda( GimpDrawable* drawable, GimpPreview* preview);
 
 
 #endif

@@ -8,20 +8,14 @@
 #include <glib/gtypes.h>
 #include <glib/gmessages.h>
 
-typedef enum _cuda_filter {
-	GREY,
-	BOX,
-	SOBEL,
-	AVERAGE
-} cuda_filter;
+#include "gicu.h"
 
 
-extern "C" void filter(guchar *d_image, gint width, gint height, guint channels,
-				cuda_filter mode, gint radius = 3, gint offset = 5);
+extern "C" void filter(guchar *d_image, gint width, gint height, guint channels);
 
-__global__ void greyRGB ( guchar *d_image, gint width, gint height, guint channels, guint step);
+__global__ void greyRGB  ( guchar *d_image, gint width, gint height, guint channels, guint step);
 __global__ void greyGRAY ( guchar *d_image, gint width, gint height, guint channels, guint step);
-__global__ void box  ( guchar *d_image, gint width, gint height, guint channels, guint step);
+__global__ void box  ( guchar* d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm);
 __global__ void sobel( guchar *d_image, gint width, gint height, guint channels, guint step);
 
 extern "C" void cuda_init( );

@@ -25,6 +25,15 @@
 #include "gui.h"
 
 
+/* Set default values for options */
+extern FilterParameter filterParm = {
+	3,  /* radius */
+	5,   /* offset */
+	false,
+	BOX
+};
+
+
 // Basics
 // Function pnts to the functions
 GimpPlugInInfo PLUG_IN_INFO = {
@@ -122,6 +131,7 @@ static void run(
 	GimpRunMode run_mode;
 	GimpDrawable *drawable;
 
+	
 	/* Setting mandatory output values */
 	status = GIMP_PDB_SUCCESS;
 	*nreturn_vals = 1;
@@ -132,50 +142,51 @@ static void run(
 	/* Getting run_mode */
 	run_mode = (GimpRunMode)param[0].data.d_int32;
 
-// 	g_message("nparams: %d\n", nparams);
-// 	filterParm.radius = 4;
-// 	g_message("nparams: %d\n", nparams);
-
 	/* Where to paint */
 	drawable = gimp_drawable_get( param[2].data.d_drawable);
 
 
-// 	switch ( run_mode) {
-// 		case GIMP_RUN_INTERACTIVE:
-// 			/* Get parameters from last run */
-// 			gimp_get_data( "plug-in-gicu", &filterParm);
-// 
-// 			if (! gicu_dialog (drawable)) {
-// 				return;
-// 			}
-// 			break;
-// 
-// 		case GIMP_RUN_NONINTERACTIVE:
-// 			/* 0 run mode
-// 			 * 1 image
-// 			 * 2 drawable
-// 			 * 3 radius
-// 			 * 4 offset
-// 			 */
-// 			if ( nparams != 5) {
-// 				status = GIMP_PDB_CALLING_ERROR;
-// 			}
-// 			if ( status == GIMP_PDB_SUCCESS) {
-// 				filterParm.radius = param[3].data.d_int32;
-// 				filterParm.offset = param[4].data.d_int32;
-// 			}
-// 			break;
-// 
-// 		case GIMP_RUN_WITH_LAST_VALS:
-// 			/*  Get options last values if needed  */
-// 			gimp_get_data( "plug-in-gicu", &filterParm);
-// 			break;
-// 
-// 		default:
-// 			break;
-// 	}
+	switch ( run_mode) {
+		case GIMP_RUN_INTERACTIVE:
+			/* Get parameters from last run */
+g_print("\nvorm aufruf a: %d\n", filterParm.radius);
+			gimp_get_data( "plug-in-gicu", &filterParm);
+g_print("vorm aufruf b: %d\n", filterParm.radius);
+			if (! gicu_dialog (drawable)) {
+g_print("nachm aufruf cancel: %d\n", filterParm.radius);
+				return;
+			}
+g_print("nachm aufruf: %d\n", filterParm.radius);
+			break;
 
-	cuda( drawable);
+		case GIMP_RUN_NONINTERACTIVE:
+			/* 0 run mode
+			 * 1 image
+			 * 2 drawable
+			 * 3 radius
+			 * 4 offset
+			 */
+			if ( nparams != 5) {
+				status = GIMP_PDB_CALLING_ERROR;
+			}
+			if ( status == GIMP_PDB_SUCCESS) {
+				filterParm.radius = param[3].data.d_int32;
+				filterParm.offset = param[4].data.d_int32;
+			}
+			break;
+
+		case GIMP_RUN_WITH_LAST_VALS:
+			/* Get parameters from last run */
+			gimp_get_data( "plug-in-gicu", &filterParm);
+			break;
+
+		default:
+			break;
+	}
+
+
+	// Wenn Interactiv aufgerufen, natuerlich kein Preview
+	cuda( drawable, NULL);
 
 	gimp_displays_flush();
 	gimp_drawable_detach( drawable);
@@ -187,35 +198,39 @@ static void run(
 
 }
 
-
-static void cuda( GimpDrawable *drawable) {
+void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	gint         channels;
 	gint         x1, y1, x2, y2;
 	GimpPixelRgn rgn_in, rgn_out;
 	gint         width, height;
-	gint         radius = 3;
+	gint         radius = filterParm.radius;
 
 	size_t size;
 	guchar *h_image;
 	guchar *d_image;
 
-	cuda_filter cuda_filter;
-
-	cuda_filter = GREY;
-// 	cuda_filter = BOX;
 
 
 	gimp_progress_init( "CUDA-Filter...");
 
-	gimp_drawable_mask_bounds (
+	/* Gets upper left and lower right coordinates,
+	 * and layers number in the image
+	 */
+
+	gimp_drawable_mask_bounds(
 			drawable->drawable_id,
 			&x1, &y1,
 			&x2, &y2);
 
-	channels = gimp_drawable_bpp( drawable->drawable_id);
 	width = x2 - x1;
 	height = y2 - y1;
-	size = width * height * channels * ( 2 * radius);
+	
+
+	channels = gimp_drawable_bpp( drawable->drawable_id);
+
+// 	size = width * height * channels * ( 2 * radius);
+	size = ( width + 2*radius) * ( height + 2*radius) * channels;
+// 	size = ( width * height * channels);
 
 	/* read data (image) from here */
 	gimp_pixel_rgn_init(
@@ -226,14 +241,14 @@ static void cuda( GimpDrawable *drawable) {
 			FALSE, FALSE);
 
 	/* write new image to here
-	 * and use shadow tiles if ! preview
+	 * and use shadow tiles if preview isn't enabled
 	 */
 	gimp_pixel_rgn_init(
 			&rgn_out,
 			drawable,
-			x1, y1,
+			x1, y1 -2,
 			width, height,
-			TRUE, TRUE);
+			preview == NULL, TRUE);
 
 	/* allocate mem on the gpu */
 	cutilSafeCall( cudaMalloc( (void**)&d_image, size));
@@ -244,19 +259,13 @@ static void cuda( GimpDrawable *drawable) {
 	h_image = g_new( guchar, size);
 
 	/* Version with takes radius into account */
+	// TODO
 	gimp_pixel_rgn_get_rect(
 			&rgn_in,
 			h_image,
-			x1 - radius, y1 - radius,
-			width + 2 * radius, height + 2 * radius);
+			x1, y1,
+			width, height);
 
-	/* TEST
-	 * can you get pixel that aren't in the region
-	 * yes you can!
-	guchar *pixel = g_new( guchar, 1);
-	gimp_pixel_rgn_get_pixel(&rgn_in,pixel, x1-1,y1);
-	g_message("bla: %d\n", *pixel);
-	*/
 
 	gimp_progress_init( "CUDA-Gimp-Plug-In");
 	gimp_progress_pulse( );
@@ -270,7 +279,7 @@ static void cuda( GimpDrawable *drawable) {
 
 	/* CUDA running kernel */
 	gimp_progress_set_text( "Running CUDA-Kernel");
-	filter( d_image, width, height, channels, cuda_filter);
+	filter( d_image, width, height, channels);
 
 // 	g_print ("blur() took %g seconds.\n", g_timer_elapsed (timer));
 // 	g_timer_degstroy (timer);
@@ -282,15 +291,24 @@ static void cuda( GimpDrawable *drawable) {
 	gimp_progress_end();
 
 	/* save image back to gimp core */
+	// TODO
 	gimp_pixel_rgn_set_rect (
 			&rgn_out,
 			h_image,
 			x1, y1,
 			width, height);
 
-	gimp_drawable_flush( drawable);
-	gimp_drawable_merge_shadow( drawable->drawable_id, TRUE);
-	gimp_drawable_update( drawable->drawable_id, x1, y1, width, height);
+	if ( preview) {
+		gimp_drawable_preview_draw_region( GIMP_DRAWABLE_PREVIEW (preview), &rgn_out);
+	} else {
+		gimp_drawable_flush( drawable);
+		gimp_drawable_merge_shadow( drawable->drawable_id, TRUE);
+		gimp_drawable_update( drawable->drawable_id, x1, y1, width, height);
+	}
+
+	/* Free Host/GPU memory */
+	g_free( h_image);
+	cutilSafeCall( cudaFree( d_image));
 
 }
 
