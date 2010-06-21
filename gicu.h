@@ -1,10 +1,10 @@
 #ifndef __gicu_H_
 #define __gicu_H_
 
+
 /* Gimp plug-in header */
 #include <libgimp/gimp.h>
 #include <libgimpwidgets/gimpwidgetstypes.h>
-
 
 
 typedef enum _cuda_filter {

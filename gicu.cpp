@@ -149,14 +149,10 @@ static void run(
 	switch ( run_mode) {
 		case GIMP_RUN_INTERACTIVE:
 			/* Get parameters from last run */
-g_print("\nvorm aufruf a: %d\n", filterParm.radius);
 			gimp_get_data( "plug-in-gicu", &filterParm);
-g_print("vorm aufruf b: %d\n", filterParm.radius);
 			if (! gicu_dialog (drawable)) {
-g_print("nachm aufruf cancel: %d\n", filterParm.radius);
 				return;
 			}
-g_print("nachm aufruf: %d\n", filterParm.radius);
 			break;
 
 		case GIMP_RUN_NONINTERACTIVE:
@@ -210,27 +206,30 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	guchar *d_image;
 
 
-
-	gimp_progress_init( "CUDA-Filter...");
+	if ( !preview)
+		gimp_progress_init( "CUDA-Filter...");
 
 	/* Gets upper left and lower right coordinates,
-	 * and layers number in the image
-	 */
-
-	gimp_drawable_mask_bounds(
-			drawable->drawable_id,
-			&x1, &y1,
-			&x2, &y2);
-
-	width = x2 - x1;
-	height = y2 - y1;
-	
+		* and layers number in the image */
+	if (preview) {
+		gimp_preview_get_position (preview, &x1, &y1);
+		gimp_preview_get_size (preview, &width, &height);
+		x2 = x1 + width;
+		y2 = y1 + height;
+	} else {
+		gimp_drawable_mask_bounds(
+				drawable->drawable_id,
+				&x1, &y1,
+				&x2, &y2);
+		width = x2 - x1;
+		height = y2 - y1;
+	}
 
 	channels = gimp_drawable_bpp( drawable->drawable_id);
 
 // 	size = width * height * channels * ( 2 * radius);
-	size = ( width + 2*radius) * ( height + 2*radius) * channels;
 // 	size = ( width * height * channels);
+	size = ( width + 2*radius) * ( height + 2*radius) * channels;
 
 	/* read data (image) from here */
 	gimp_pixel_rgn_init(
@@ -259,7 +258,7 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	h_image = g_new( guchar, size);
 
 	/* Version with takes radius into account */
-	// TODO
+	// TODO regionen aendern
 	gimp_pixel_rgn_get_rect(
 			&rgn_in,
 			h_image,
@@ -291,7 +290,7 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	gimp_progress_end();
 
 	/* save image back to gimp core */
-	// TODO
+	// TODO regionen aendern
 	gimp_pixel_rgn_set_rect (
 			&rgn_out,
 			h_image,

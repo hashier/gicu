@@ -1,11 +1,6 @@
 #include "gui.h"
 
-gint add (GtkObject a, gint *t) {
-// 	g_print("test1: %d\n",*t);
-// 	g_print("test2: %d\n",filterParm.radius);
-	//*t = 3;
-	//return *t + 1;
-}
+
 gboolean gicu_dialog (GimpDrawable *drawable) {
 
         GtkWidget *dialog;
@@ -66,9 +61,6 @@ gboolean gicu_dialog (GimpDrawable *drawable) {
 
         g_signal_connect (spinbutton_adj, "value_changed",
                           G_CALLBACK (gimp_int_adjustment_update),
-                          &filterParm.radius);
-        g_signal_connect (spinbutton_adj, "value_changed",
-                          G_CALLBACK (add),
                           &filterParm.radius);
         gtk_widget_show (dialog);
 
