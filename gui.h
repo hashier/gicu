@@ -8,7 +8,6 @@
 
 #include "gicu.h"
 
-
 gboolean gicu_dialog (GimpDrawable *drawable);
 
 

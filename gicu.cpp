@@ -27,10 +27,10 @@
 
 /* Set default values for options */
 extern FilterParameter filterParm = {
-	3,  /* radius */
-	5,   /* offset */
-	false,
-	BOX
+	3,     /* radius */
+	5,     /* offset */
+	false, /* preview */
+	BOX    /* CUDA-Filter */
 };
 
 
@@ -221,7 +221,7 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 				drawable->drawable_id,
 				&x1, &y1,
 				&x2, &y2);
-		width = x2 - x1;
+		width  = x2 - x1;
 		height = y2 - y1;
 	}
 
