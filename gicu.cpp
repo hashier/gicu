@@ -26,7 +26,7 @@
 
 
 /* Set default values for options */
-extern FilterParameter filterParm = {
+FilterParameter filterParm = {
 	3,     /* radius */
 	5,     /* offset */
 	false, /* preview */
@@ -47,7 +47,7 @@ GimpPlugInInfo PLUG_IN_INFO = {
 // Main
 MAIN()
 
-static void query( void) {
+void query( void) {
 
 	char gicu_help[] =
 		"In the beginning, there was Wilber, Wilber the gimp. \
@@ -118,7 +118,7 @@ kinds, and the drawables of the mask according to their kinds...";
 }
 
 
-static void run(
+void run(
 		const gchar     *name,
 		gint            nparams,
 		const GimpParam *param,

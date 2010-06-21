@@ -25,8 +25,8 @@ typedef struct _FilterParameter {
 extern FilterParameter filterParm;
 
 
-static void query( void);
-static void run(
+void query( void);
+void run(
 		const gchar     *name,
 		gint            nparams,
 		const GimpParam *param,
