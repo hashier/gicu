@@ -235,8 +235,8 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	gimp_pixel_rgn_init(
 			&rgn_in,
 			drawable,
-			x1, y1,
-			width, height,
+			x1 - radius , y1 - radius,
+			width + 2*radius, height + 2*radius,
 			FALSE, FALSE);
 
 	/* write new image to here
@@ -245,7 +245,7 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	gimp_pixel_rgn_init(
 			&rgn_out,
 			drawable,
-			x1, y1 -2,
+			x1, y1,
 			width, height,
 			preview == NULL, TRUE);
 
@@ -258,12 +258,11 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	h_image = g_new( guchar, size);
 
 	/* Version with takes radius into account */
-	// TODO regionen aendern
 	gimp_pixel_rgn_get_rect(
 			&rgn_in,
 			h_image,
-			x1, y1,
-			width, height);
+			x1 - radius , y1 - radius,
+			width + 2*radius, height + 2*radius);
 
 
 	gimp_progress_init( "CUDA-Gimp-Plug-In");
@@ -290,7 +289,6 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	gimp_progress_end();
 
 	/* save image back to gimp core */
-	// TODO regionen aendern
 	gimp_pixel_rgn_set_rect (
 			&rgn_out,
 			h_image,
