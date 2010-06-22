@@ -180,6 +180,8 @@ void run(
 			break;
 	}
 
+// 	g_message( "Item num %d selected\n", gtk_combo_box_get_active( GTK_COMBO_BOX( combo_box)));
+// 	g_message( "Item num %d selected\n", filterParm.cuda_filter);
 
 	// Wenn Interactiv aufgerufen, natuerlich kein Preview
 	cuda( drawable, NULL);

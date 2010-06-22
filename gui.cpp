@@ -1,5 +1,8 @@
 #include "gui.h"
 
+static void add( GtkWidget *w) {
+
+}
 
 gboolean gicu_dialog (GimpDrawable *drawable) {
 
@@ -73,16 +76,31 @@ gboolean gicu_dialog (GimpDrawable *drawable) {
 	gtk_box_pack_start( GTK_BOX( main_hbox), spinbutton_offset, FALSE, FALSE, 0);
 	gtk_widget_show( spinbutton_offset);
 
+	/*
 	combo_box = gtk_combo_box_new_text( );
-	gtk_combo_box_append_text( GTK_COMBO_BOX( combo_box), "test");
+	gtk_combo_box_append_text( GTK_COMBO_BOX( combo_box), "Grey");
+	gtk_combo_box_append_text( GTK_COMBO_BOX( combo_box), "Box");
+	gtk_combo_box_append_text( GTK_COMBO_BOX( combo_box), "Sobel");
+	gtk_combo_box_append_text( GTK_COMBO_BOX( combo_box), "Average");
+	*/
+	combo_box = gimp_int_combo_box_new (
+			("Grey"), GREY,
+			("Box"), BOX,
+			("Sobel"), SOBEL,
+			("Average"), AVERAGE,
+			NULL);
+
+
 	gtk_box_pack_start( GTK_BOX( main_vbox), combo_box, FALSE, FALSE, 0);
 	gtk_widget_show( combo_box);
+
 
 	/* Wenn das Bild invalid ist, cuda ausfuehren */
 	g_signal_connect_swapped (
 			preview, "invalidated",
 			G_CALLBACK( cuda),
 			drawable);
+
 
 	/* wenn radius sich aendert, Bild invalid markieren */
 	g_signal_connect_swapped (
@@ -94,16 +112,28 @@ gboolean gicu_dialog (GimpDrawable *drawable) {
 			spinbutton_adj_offset, "value_changed",
 			G_CALLBACK( gimp_preview_invalidate),
 			preview);
+	g_signal_connect_swapped (
+			combo_box, "changed",
+			G_CALLBACK( gimp_preview_invalidate),
+			preview);
+
 
 	/* Wenn sich radius aendert, es in filterParm speichern */
 	g_signal_connect (
 			spinbutton_adj_radius, "value_changed",
 			G_CALLBACK( gimp_int_adjustment_update),
 			&filterParm.radius);
+	/* Wenn sich offset aendert, es in filterParm speichern */
 	g_signal_connect (
 			spinbutton_adj_offset, "value_changed",
 			G_CALLBACK( gimp_int_adjustment_update),
 			&filterParm.offset);
+
+	/* Set signals to the combobox */
+	/* Wenn sich wert aendert, filterparm speicher */
+	gimp_int_combo_box_connect(
+			GIMP_INT_COMBO_BOX( combo_box), 1, /* Default active value */
+			G_CALLBACK( gimp_int_combo_box_get_active), &filterParm.cuda_filter);
 
 	cuda( drawable, GIMP_PREVIEW( preview));
 
