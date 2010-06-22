@@ -56,9 +56,9 @@ LINK_DIRECTORIES(
 CUDA_ADD_EXECUTABLE( ${PROJECT_NAME}
 	gicu.cpp
 	cuda.cu
-	grey.cu
-	box.cu
 	gui.cpp
+	#grey.cu
+	#box.cu
 	#sobel.cu
 )
 

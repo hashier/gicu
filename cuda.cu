@@ -88,6 +88,12 @@ extern "C" void deleteTexture( ) {
 	cutilSafeCall( cudaFreeArray( array));
 }
 
+
+
+/*
+ * ALL the CUDA Functions
+ */
+
 __global__ void sobel( guchar *d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm) {
 
 	unsigned char pix00 = tex2D( tex, 1,1 );
@@ -98,3 +104,33 @@ __global__ void sobel( guchar *d_image, gint width, gint height, guint channels,
 	d_image[y*step+x] = pix00;
 
 }
+
+__global__ void box( guchar *d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm) {
+
+	unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+	d_image[y*step+x] = 255 - filterParm.radius;
+
+}
+
+__global__ void greyRGB( guchar* d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm) {
+
+	unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	x *= channels;
+	unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+	d_image[y*step+x]   = 128;
+	d_image[y*step+x+1] = 128;
+	d_image[y*step+x+2] = 128;
+
+}
+
+__global__ void grey( guchar* d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm) {
+
+	unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+	d_image[y*step+x]   = filterParm.radius;
+
+}
+
