@@ -8,70 +8,98 @@ gboolean gicu_dialog (GimpDrawable *drawable) {
 	GtkWidget *main_hbox;
 	GtkWidget *preview;
 	GtkWidget *frame;
-	GtkWidget *radius_label;
+	GtkWidget *label_radius;
+	GtkWidget *label_offset;
 	GtkWidget *alignment;
-	GtkWidget *spinbutton;
-	GtkObject *spinbutton_adj;
-	GtkWidget *frame_label;
+	GtkWidget *spinbutton_radius;
+	GtkWidget *spinbutton_offset;
+	GtkObject *spinbutton_adj_radius;
+	GtkObject *spinbutton_adj_offset;
 	gboolean   run;
+
 
 	gimp_ui_init ("gicu", FALSE);
 
 	dialog = gimp_dialog_new (
 			"CUDA-Filter parameter", "gicu",
 			NULL, GTK_DIALOG_MODAL,
-			gimp_standard_help_func, "plug-in-gicuu",
+			gimp_standard_help_func, "plug-in-gicu",
 			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 			GTK_STOCK_OK,     GTK_RESPONSE_OK,
 			NULL);
 
-	main_vbox = gtk_vbox_new (FALSE, 6);
-	gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), main_vbox);
+	main_vbox = gtk_vbox_new( FALSE, 5);
+	gtk_container_add( GTK_CONTAINER( GTK_DIALOG (dialog)->vbox), main_vbox);
 	gtk_widget_show (main_vbox);
 
-	preview = gimp_drawable_preview_new (drawable, &filterParm.preview);
-	gtk_box_pack_start (GTK_BOX (main_vbox), preview, TRUE, TRUE, 0);
+	preview = gimp_drawable_preview_new( drawable, &filterParm.preview);
+	gtk_box_pack_start (GTK_BOX (main_vbox), preview, FALSE, FALSE, 0);
 	gtk_widget_show (preview);
 
-	frame = gimp_frame_new ("Blur radius");
+	frame = gimp_frame_new( "CUDA-Filter-Options");
 	gtk_box_pack_start (GTK_BOX (main_vbox), frame, FALSE, FALSE, 0);
 	gtk_widget_show (frame);
 
 	alignment = gtk_alignment_new (0.5, 0.5, 1, 1);
-	gtk_widget_show (alignment);
 	gtk_container_add (GTK_CONTAINER (frame), alignment);
-	gtk_alignment_set_padding (GTK_ALIGNMENT (alignment), 6, 6, 6, 6);
+	gtk_alignment_set_padding (GTK_ALIGNMENT (alignment), 5, 5, 5, 5);
+	gtk_widget_show (alignment);
 
-	main_hbox = gtk_hbox_new (FALSE, 12);
-	gtk_container_set_border_width (GTK_CONTAINER (main_hbox), 12);
-	gtk_widget_show (main_hbox);
+	main_hbox = gtk_hbox_new (FALSE, 5);
+	gtk_container_set_border_width (GTK_CONTAINER (main_hbox), 5);
 	gtk_container_add (GTK_CONTAINER (alignment), main_hbox);
+	gtk_widget_show (main_hbox);
 
-	radius_label = gtk_label_new_with_mnemonic ("_Radius:");
-	gtk_widget_show (radius_label);
-	gtk_box_pack_start (GTK_BOX (main_hbox), radius_label, FALSE, FALSE, 6);
-	gtk_label_set_justify (GTK_LABEL (radius_label), GTK_JUSTIFY_RIGHT);
+	label_radius = gtk_label_new_with_mnemonic ("_Radius:");
+	gtk_box_pack_start (GTK_BOX (main_hbox), label_radius, FALSE, FALSE, 5);
+	gtk_label_set_justify (GTK_LABEL (label_radius), GTK_JUSTIFY_RIGHT);
+	gtk_widget_show (label_radius);
 
-	spinbutton = gimp_spin_button_new (&spinbutton_adj, filterParm.radius,
-										1, 255, 1, 0, 0, 5, 0);
-	gtk_box_pack_start (GTK_BOX (main_hbox), spinbutton, FALSE, FALSE, 0);
-	gtk_widget_show (spinbutton);
+	spinbutton_radius = gimp_spin_button_new (
+			&spinbutton_adj_radius, filterParm.radius,
+			1, 255, 1, 0, 0, 5, 0);
+	gtk_box_pack_start (GTK_BOX (main_hbox), spinbutton_radius, FALSE, FALSE, 0);
+	gtk_widget_show (spinbutton_radius);
 
+	label_offset = gtk_label_new_with_mnemonic ("_Offset:");
+	gtk_box_pack_start (GTK_BOX (main_hbox), label_offset, FALSE, FALSE, 6);
+	gtk_label_set_justify (GTK_LABEL (label_offset), GTK_JUSTIFY_RIGHT);
+	gtk_widget_show (label_offset);
+
+	spinbutton_offset = gimp_spin_button_new (
+			&spinbutton_adj_offset, filterParm.offset,
+			1, 255, 1, 0, 0, 5, 0);
+	gtk_box_pack_start (GTK_BOX (main_hbox), spinbutton_offset, FALSE, FALSE, 0);
+	gtk_widget_show (spinbutton_offset);
+
+	/* Wenn das Bild invalid ist, cuda ausfuehren */
 	g_signal_connect_swapped (
 			preview, "invalidated",
 			G_CALLBACK (cuda),
 			drawable);
+
+	/* wenn radius sich aendert, Bild invalid markieren */
 	g_signal_connect_swapped (
-			spinbutton_adj, "value_changed",
+			spinbutton_adj_radius, "value_changed",
+			G_CALLBACK (gimp_preview_invalidate),
+			preview);
+	/* wenn offset sich aendert, Bild invalid markieren */
+	g_signal_connect_swapped (
+			spinbutton_adj_offset, "value_changed",
 			G_CALLBACK (gimp_preview_invalidate),
 			preview);
 
-	cuda (drawable, GIMP_PREVIEW (preview));
-
+	/* Wenn sich radius aendert, es in filterParm speichern */
 	g_signal_connect (
-			spinbutton_adj, "value_changed",
+			spinbutton_adj_radius, "value_changed",
 			G_CALLBACK (gimp_int_adjustment_update),
 			&filterParm.radius);
+	g_signal_connect (
+			spinbutton_adj_offset, "value_changed",
+			G_CALLBACK (gimp_int_adjustment_update),
+			&filterParm.offset);
+
+	cuda (drawable, GIMP_PREVIEW (preview));
 
 	gtk_widget_show (dialog);
 
@@ -80,6 +108,5 @@ gboolean gicu_dialog (GimpDrawable *drawable) {
 	gtk_widget_destroy (dialog);
 
 	return run;
-
 
 }
