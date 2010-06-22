@@ -28,7 +28,7 @@ void filter(
 
 	switch ( filterParm.cuda_filter) {
 		case GREY:
-			greyGRAY<<< gridDim, blockDim, 0 >>>( d_image, width, height, channels, step, filterParm);
+			grey<<< gridDim, blockDim, 0 >>>( d_image, width, height, channels, step, filterParm);
 			break;
 			
 		case BOX:

@@ -180,10 +180,8 @@ void run(
 			break;
 	}
 
-// 	g_message( "Item num %d selected\n", gtk_combo_box_get_active( GTK_COMBO_BOX( combo_box)));
-// 	g_message( "Item num %d selected\n", filterParm.cuda_filter);
 
-	// Wenn Interactiv aufgerufen, natuerlich kein Preview
+	// Final call, work on whole image, w/o preview of course
 	cuda( drawable, NULL);
 
 	gimp_displays_flush();
