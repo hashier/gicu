@@ -1,11 +1,11 @@
 #include "cuda.h"
 
 // Texture reference for reading image
-static texture<guchar, 2> tex;
+texture<guchar, 2> tex;
 
 // arrays are optimized for 2D access so we'll use arrays
 // insted of single row pointer memory addresses
-static cudaArray *array = NULL;
+cudaArray *array = NULL;
 
 // Shared Mem on the dev is declared with __shared__
 extern __shared__ unsigned char LocalBlock[];
@@ -36,6 +36,7 @@ void filter(
 			break;
 			
 		case SOBEL:
+			sobel<<< gridDim, blockDim, 0 >>>( d_image, width, height, channels, step, filterParm);
 			break;
 			
 		case AVERAGE:
@@ -51,26 +52,14 @@ void filter(
 extern "C" void cuda_init( ) {
 }
 
-extern "C" void setupTexture(gint width, gint height) {
+extern "C" void setupTexture( gint width, gint height) {
 	cudaChannelFormatDesc desc;
 
 // 	desc = cudaCreateChannelDesc<unsigned char>();
-	int e = (int)sizeof(guchar) * 8;
+	int e = (int)sizeof( guchar) * 8;
 	desc = cudaCreateChannelDesc(e, 0, 0, 0, cudaChannelFormatKindUnsigned);
 
-	cutilSafeCall(cudaMallocArray(&array, &desc, width, height));
-}
-
-extern "C" void updateTexture(gint width, gint height, guchar *data, gint channel) {
-	cutilSafeCall(cudaMemcpyToArray(
-			array,
-			0, 0,
-			data, /* 0 0 <- h und w offset */
-			channel * sizeof(guchar) * width * height, cudaMemcpyHostToDevice));
-}
-
-extern "C" void deleteTexture( ) {
-	cutilSafeCall(cudaFreeArray(array));
+	cutilSafeCall(cudaMallocArray( &array, &desc, width, height));
 }
 
 extern "C" void bindTexture( ) {
@@ -80,9 +69,32 @@ extern "C" void bindTexture( ) {
 	tex.filterMode = cudaFilterModePoint;
 	tex.normalized = false;
 
-	cutilSafeCall(cudaBindTextureToArray(tex, array));
+	cutilSafeCall( cudaBindTextureToArray( tex, array));
+}
+
+extern "C" void updateTexture( gint width, gint height, guchar *data, gint channel) {
+	cutilSafeCall(cudaMemcpyToArray(
+			array,
+			0, 0, /* 0 0 <- h und w offset */
+			data,
+			channel * sizeof( guchar) * width * height, cudaMemcpyHostToDevice));
 }
 
 extern "C" void unbindTexture( ) {
-	cutilSafeCall(cudaUnbindTexture(tex));
+	cutilSafeCall( cudaUnbindTexture( tex));
+}
+
+extern "C" void deleteTexture( ) {
+	cutilSafeCall( cudaFreeArray( array));
+}
+
+__global__ void sobel( guchar *d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm) {
+
+	unsigned char pix00 = tex2D( tex, 1,1 );
+
+	unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+	d_image[y*step+x] = pix00;
+
 }

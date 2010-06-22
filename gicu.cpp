@@ -187,6 +187,10 @@ void run(
 	gimp_displays_flush();
 	gimp_drawable_detach( drawable);
 
+	/* Clean CUDA stuff: free array, unset/unbin textures etc. */
+	unbindTexture();
+	deleteTexture();
+
 	/*  Finally, set options in the core  */
 	if ( run_mode == GIMP_RUN_INTERACTIVE) {
 		gimp_set_data( "plug-in-gicu", &filterParm, sizeof( FilterParameter));
@@ -200,6 +204,7 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	GimpPixelRgn rgn_in, rgn_out;
 	gint         width, height;
 	gint         radius = filterParm.radius;
+	gint         x, y, w, h;
 
 	size_t size;
 	guchar *h_image;
@@ -227,16 +232,41 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 
 	channels = gimp_drawable_bpp( drawable->drawable_id);
 
-// 	size = width * height * channels * ( 2 * radius);
-// 	size = ( width * height * channels);
-	size = ( width + 2*radius) * ( height + 2*radius) * channels;
+	x = x1 - radius;
+	y = y1 - radius;
+	w = width + 2*radius;
+	h = height + 2*radius;
+
+	if ( x < 0)
+		x = 0;
+	if ( y < 0)
+		y = 0;
+	if ( x + w > drawable->width)
+		w = drawable->width - x;
+	if ( y + h > drawable->height)
+		h = drawable->height - y;
+
+	size = ( w) * ( h) * channels;
+
+// putchar('\n');
+// g_print("r: %d\n", radius);
+// g_print("x: %d\n", x);
+// g_print("y: %d\n", y);
+// g_print("w: %d\n", w);
+// g_print("h: %d\n", h);
+// g_print("dw: %d\n", drawable->width);
+// g_print("dh: %d\n", drawable->height);
+
+
+	setupTexture( w, h);
+	bindTexture();
 
 	/* read data (image) from here */
 	gimp_pixel_rgn_init(
 			&rgn_in,
 			drawable,
-			x1 - radius , y1 - radius,
-			width + 2*radius, height + 2*radius,
+			x, y,
+			w, h,
 			FALSE, FALSE);
 
 	/* write new image to here
@@ -261,8 +291,8 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	gimp_pixel_rgn_get_rect(
 			&rgn_in,
 			h_image,
-			x1 - radius , y1 - radius,
-			width + 2*radius, height + 2*radius);
+			x, y,
+			w, h);
 
 
 	gimp_progress_init( "CUDA-Gimp-Plug-In");
@@ -270,7 +300,8 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	
 	/* CUDA cp image */
 	gimp_progress_set_text( "Copying the image to graphics card");
-	cutilSafeCall( (cudaMemcpy( d_image, h_image, size, cudaMemcpyHostToDevice)));
+	updateTexture( w, h, h_image, 1);
+// 	cutilSafeCall( (cudaMemcpy( d_image, h_image, size, cudaMemcpyHostToDevice)));
 
 	/* timer */
 // 	GTimer timer = g_timer_new time( );
