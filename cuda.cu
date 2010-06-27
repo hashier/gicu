@@ -89,7 +89,6 @@ extern "C" void deleteTexture( ) {
 }
 
 
-
 /*
  * ALL the CUDA Functions
  */

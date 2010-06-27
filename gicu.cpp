@@ -257,7 +257,7 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 // g_print("dw: %d\n", drawable->width);
 // g_print("dh: %d\n", drawable->height);
 
-
+	/* Setup array and texture stuff */
 	setupTexture( w, h);
 	bindTexture();
 
@@ -300,6 +300,10 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	
 	/* CUDA cp image */
 	gimp_progress_set_text( "Copying the image to graphics card");
+
+	/* This is like the call below... cp the image to the array
+	 * this also reflects in an updated tex
+	 */
 	updateTexture( w, h, h_image, 1);
 // 	cutilSafeCall( (cudaMemcpy( d_image, h_image, size, cudaMemcpyHostToDevice)));
 
@@ -337,6 +341,9 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	/* Free Host/GPU memory */
 	g_free( h_image);
 	cutilSafeCall( cudaFree( d_image));
+
+	unbindTexture();
+	deleteTexture();
 
 }
 
