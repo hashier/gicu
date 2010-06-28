@@ -15,33 +15,25 @@ void filter(
 		guchar* d_image, gint width, gint height,
 		guint channels) {
 
-	dim3 blockDim( 16, 16, 1);
-	int x = 0, y = 0;
-	if ( width % blockDim.x)
-		x = 1;
-	if ( height % blockDim.y)
-		y = 1;
-
-	dim3 gridDim( width / blockDim.x + x, height / blockDim.y + y, 1);
 	guint step = channels * width;
-
+	int x = 0, y = 0;
 
 	switch ( filterParm.cuda_filter) {
 		case GREY:
-			grey<<< gridDim, blockDim, 0 >>>( d_image, width, height, channels, step, filterParm);
+			grey<<< height, 384, 0 >>>( d_image, width, height, channels, step, filterParm);
 			break;
-			
+
 		case BOX:
-			box<<< gridDim, blockDim, 0 >>>( d_image, width, height, channels, step, filterParm);
+			box<<< height, 384, 0 >>>( d_image, width, height, channels, step, filterParm);
 			break;
-			
+
 		case SOBEL:
-			sobelTex<<< height, blockDim, 0 >>>( d_image, width, height, channels, step, filterParm);
+			sobelTex<<< height, 384, 0 >>>( d_image, width, height, channels, step, filterParm);
 			break;
-			
+
 		case AVERAGE:
 			break;
-			
+
 		default:
 			g_printerr("Filter not found");
 			break;
@@ -138,30 +130,47 @@ __global__ void sobelTex( guchar *d_image, gint width, gint height, guint channe
 
 __global__ void box( guchar *d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm) {
 
-	unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
-	unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+    // blockIdx.x * Pitch (image.width) = Startpointer auf die Idx.x te Zeile
+    unsigned char *p =
+        (unsigned char *) (((char *) d_image)+blockIdx.x*step);
+    int b = 0;
 
-	d_image[y*step+x] = 255 - filterParm.radius;
+    for ( int i = threadIdx.x; i < width; i += blockDim.x ) {
+        if(b==1) {
+            if(blockIdx.x % 2 ) {
+                p[i] = 255;
+            } else {
+                p[i] = 0;
+            }
+        } else {
+            if(blockIdx.x % 2 ) {
+                p[i] = 0;
+            } else {
+                p[i] = 255;
+            }
+        }
+        b=1;
+    }
 
 }
 
-__global__ void greyRGB( guchar* d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm) {
-
-	unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
-	x *= channels;
-	unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
-	d_image[y*step+x]   = 128;
-	d_image[y*step+x+1] = 128;
-	d_image[y*step+x+2] = 128;
-
-}
+/* OLD OUTDATED CODE */
+// __global__ void greyRGB( guchar* d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm) {
+// 
+// 	unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+// 	x *= channels;
+// 	unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+// 	d_image[y*step+x]   = 128;
+// 	d_image[y*step+x+1] = 128;
+// 	d_image[y*step+x+2] = 128;
+// 
+// }
 
 __global__ void grey( guchar* d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm) {
 
-	unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
-	unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
-
-	d_image[y*step+x]   = filterParm.radius;
+	for ( int i = threadIdx.x; i < width; i += blockDim.x ) {
+		d_image[blockIdx.x*step+i] = filterParm.radius;
+	}
 
 }
 

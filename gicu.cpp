@@ -283,6 +283,8 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	/* allocate mem for output image */
 // 	cutilSafeCall( cudaMallocHost( (void**)&h_image, size));
 	h_image = g_new( guchar, size);
+	memset( h_image, 0, size);
+
 
 	/* Version with takes radius into account */
 	gimp_pixel_rgn_get_rect(
