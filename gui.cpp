@@ -8,7 +8,7 @@ static GtkWidget *spinbutton_offset;
 static GtkWidget *combo_box;
 
 
-static void add( GtkWidget *w, int selected) {
+static void add( GtkWidget *w) {
 
 	int value = -1;
 
@@ -45,6 +45,15 @@ static void add( GtkWidget *w, int selected) {
 			gtk_widget_set_visible( spinbutton_offset, FALSE);
 			gtk_widget_set_visible( label_radius, TRUE);
 			gtk_widget_set_visible( spinbutton_radius, TRUE);
+			break;
+
+		case TEST:
+			gtk_label_set_text_with_mnemonic( GTK_LABEL( label_radius), "_Radius");
+			gtk_label_set_text_with_mnemonic( GTK_LABEL( label_offset), "_Offset");
+			gtk_widget_set_visible( label_offset, FALSE);
+			gtk_widget_set_visible( spinbutton_offset, FALSE);
+			gtk_widget_set_visible( label_radius, FALSE);
+			gtk_widget_set_visible( spinbutton_radius, FALSE);
 			break;
 
 		default:
@@ -130,6 +139,7 @@ gboolean gicu_dialog (GimpDrawable *drawable) {
 			("Box"), BOX,
 			("Sobel"), SOBEL,
 			("Average"), AVERAGE,
+			("Test"), TEST,
 			NULL);
 	gtk_box_pack_start( GTK_BOX( main_vbox), combo_box, FALSE, FALSE, 0);
 	gtk_widget_show( combo_box);

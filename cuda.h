@@ -14,8 +14,9 @@
 extern "C" void filter(guchar *d_image, gint width, gint height, guint channels);
 
 __global__ void greyRGB  ( guchar *d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm);
-__global__ void grey ( guchar *d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm);
-__global__ void box  ( guchar* d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm);
+__global__ void grey  ( guchar *d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm);
+__global__ void box   ( guchar* d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm);
+__global__ void test  ( guchar* d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm);
 __global__ void sobelTex( guchar* d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm);
 
 extern "C" void cuda_init( );

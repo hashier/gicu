@@ -34,6 +34,10 @@ void filter(
 		case AVERAGE:
 			break;
 
+		case TEST:
+			test<<< height, 384, 0 >>>( d_image, width, height, channels, step, filterParm);
+			break;
+
 		default:
 			g_printerr("Filter not found");
 			break;
@@ -129,6 +133,32 @@ __global__ void sobelTex( guchar *d_image, gint width, gint height, guint channe
 }
 
 __global__ void box( guchar *d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm) {
+
+    // blockIdx.x * Pitch (image.width) = Startpointer auf die Idx.x te Zeile
+    unsigned char *p =
+        (unsigned char *) (((char *) d_image)+blockIdx.x*step);
+    int b = 0;
+
+    for ( int i = threadIdx.x; i < width; i += blockDim.x ) {
+        if(b==1) {
+            if(blockIdx.x % 2 ) {
+                p[i] = 255;
+            } else {
+                p[i] = 0;
+            }
+        } else {
+            if(blockIdx.x % 2 ) {
+                p[i] = 0;
+            } else {
+                p[i] = 255;
+            }
+        }
+        b=1;
+    }
+
+}
+
+__global__ void test( guchar *d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm) {
 
     // blockIdx.x * Pitch (image.width) = Startpointer auf die Idx.x te Zeile
     unsigned char *p =

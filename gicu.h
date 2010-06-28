@@ -11,7 +11,8 @@ typedef enum _cuda_filter {
 	GREY,
 	BOX,
 	SOBEL,
-	AVERAGE
+	AVERAGE,
+	TEST
 } cuda_filter;
 
 
