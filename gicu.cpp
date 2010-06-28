@@ -187,9 +187,6 @@ void run(
 	gimp_displays_flush();
 	gimp_drawable_detach( drawable);
 
-	/* Clean CUDA stuff: free array, unset/unbin textures etc. */
-	unbindTexture();
-	deleteTexture();
 
 	/*  Finally, set options in the core  */
 	if ( run_mode == GIMP_RUN_INTERACTIVE) {
@@ -342,6 +339,7 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	g_free( h_image);
 	cutilSafeCall( cudaFree( d_image));
 
+	/* Clean CUDA stuff: free array, unset/unbin textures etc. */
 	unbindTexture();
 	deleteTexture();
 
