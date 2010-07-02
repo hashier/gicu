@@ -87,9 +87,11 @@ kinds, and the drawables of the mask according to their kinds...";
 			(gchar*) "radius",
 			(gchar*) "set the radius of the kernel"
 		},
+		{
 			GIMP_PDB_INT32,
 			(gchar*) "offset",
 			(gchar*) "to reduce the noice"
+		}
 	};
 
 	/* install procedure
