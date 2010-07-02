@@ -243,7 +243,9 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	if ( y + h > drawable->height)
 		h = drawable->height - y;
 
-	size = ( w) * ( h) * channels;
+	/* This is for better edges, but doesnt work at the moment */
+// 	size = ( w) * ( h) * channels;
+	size = width * height * channels;
 
 // putchar('\n');
 // g_print("r: %d\n", radius);
@@ -255,15 +257,20 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 // g_print("dh: %d\n", drawable->height);
 
 	/* Setup array and texture stuff */
-	setupTexture( w, h);
+// 	setupTexture( w, h);
+	setupTexture( width, height);
 	bindTexture();
 
 	/* read data (image) from here */
 	gimp_pixel_rgn_init(
 			&rgn_in,
 			drawable,
+			/* for better edgeds
 			x, y,
 			w, h,
+			*/
+			x1, y1,
+			width, height,
 			FALSE, FALSE);
 
 	/* write new image to here
@@ -290,8 +297,12 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	gimp_pixel_rgn_get_rect(
 			&rgn_in,
 			h_image,
+			/* for better edgeds
 			x, y,
-			w, h);
+			w, h
+			*/
+			x1, y1,
+			width, height);
 
 
 	gimp_progress_init( "CUDA-Gimp-Plug-In");
@@ -303,7 +314,8 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 	/* This is like the call below... cp the image to the array
 	 * this also reflects in an updated tex
 	 */
-	updateTexture( w, h, h_image, 1);
+// 	updateTexture( w, h, h_image, 1); // for better edgeds
+	updateTexture( width, height, h_image, 1);
 // 	cutilSafeCall( (cudaMemcpy( d_image, h_image, size, cudaMemcpyHostToDevice)));
 
 	/* timer */
