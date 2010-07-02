@@ -29,16 +29,16 @@ static void add( GtkWidget *w) {
 			gtk_widget_set_visible( spinbutton_radius, FALSE);
 			break;
 
-		case BOX:
+		case BOXBIN:
 			gtk_label_set_text_with_mnemonic( GTK_LABEL( label_radius), "_Radius");
 			gtk_label_set_text_with_mnemonic( GTK_LABEL( label_offset), "_Offset");
-			gtk_widget_set_visible( label_offset, FALSE);
-			gtk_widget_set_visible( spinbutton_offset, FALSE);
+			gtk_widget_set_visible( label_offset, TRUE);
+			gtk_widget_set_visible( spinbutton_offset, TRUE);
 			gtk_widget_set_visible( label_radius, TRUE);
 			gtk_widget_set_visible( spinbutton_radius, TRUE);
 			break;
 
-		case AVERAGE:
+		case BOX:
 			gtk_label_set_text_with_mnemonic( GTK_LABEL( label_radius), "_Radius");
 			gtk_label_set_text_with_mnemonic( GTK_LABEL( label_offset), "_Offset");
 			gtk_widget_set_visible( label_offset, FALSE);
@@ -126,19 +126,19 @@ gboolean gicu_dialog (GimpDrawable *drawable) {
 	label_offset = gtk_label_new_with_mnemonic( "_Offset:");
 	gtk_box_pack_start( GTK_BOX( main_hbox), label_offset, FALSE, FALSE, 5);
 	gtk_label_set_justify( GTK_LABEL( label_offset), GTK_JUSTIFY_RIGHT);
-// 	gtk_widget_show( label_offset);
+	gtk_widget_show( label_offset);
 
 	spinbutton_offset = gimp_spin_button_new (
 			&spinbutton_adj_offset, filterParm.offset,
 			1, 255, 1, 0, 0, 5, 0);
 	gtk_box_pack_start( GTK_BOX( main_hbox), spinbutton_offset, FALSE, FALSE, 0);
-// 	gtk_widget_show( spinbutton_offset);
+	gtk_widget_show( spinbutton_offset);
 
 	combo_box = gimp_int_combo_box_new (
 			("Grey"), GREY,
-			("Box"), BOX,
+			("Local Bin (Box)"), BOXBIN,
 			("Sobel"), SOBEL,
-			("Average"), AVERAGE,
+			("Boxing"), BOX,
 			("Test"), TEST,
 			NULL);
 	gtk_box_pack_start( GTK_BOX( main_vbox), combo_box, FALSE, FALSE, 0);

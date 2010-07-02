@@ -207,7 +207,7 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 
 	size_t size;
 	guchar *h_image;
-	guchar *d_image;
+	guchar *d_image, *d_image_temp;
 
 
 	if ( !preview)
@@ -287,6 +287,7 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 
 	/* allocate mem on the gpu */
 	cutilSafeCall( cudaMalloc( (void**)&d_image, size));
+	cutilSafeCall( cudaMalloc( (void**)&d_image_temp, size));
 
 	/* where the final image will be saved in the host memory */
 	/* allocate mem for output image */
@@ -325,7 +326,7 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 
 	/* CUDA running kernel */
 	gimp_progress_set_text( "Running CUDA-Kernel");
-	filter( d_image, width, height, channels);
+	filter( d_image, width, height, channels, d_image_temp);
 
 // 	g_print ("blur() took %g seconds.\n", g_timer_elapsed (timer));
 // 	g_timer_degstroy (timer);
