@@ -380,13 +380,10 @@ d_boxfilter_y(guchar *id, guchar *od, int w, int h, int r, uint x, int offset, g
 	// Average Filter
 	//od[0] = t * scale;
 	// Binaerisierung
-	if (do_bin) {
-		if ( tex2D(tex, x, 0) < ((t * scale) + offset ))
-			od[0] = 0;
-		else
-			od[0] = 255;
-	} else
-		od[0] = t * scale;
+	if ( tex2D(tex, x, 0) < ((t * scale) + offset ))
+		od[0] = 0;
+	else
+		od[0] = 255;
 
 	for(int y = 1; y <= r; y++) {
 		t += id[(y+r)*w];
@@ -394,14 +391,10 @@ d_boxfilter_y(guchar *id, guchar *od, int w, int h, int r, uint x, int offset, g
 		// Average Filter
 		//od[y*w] = t * scale;
 		// Binaerisierung
-		if (do_bin) {
-			if ( tex2D(tex, x, y) < ((t * scale) + offset ))
-				od[y*w] = 0;
-			else
-				od[y*w] = 255;
-		} else {
-			od[y*w] = t * scale;
-		}
+		if ( tex2D(tex, x, y) < ((t * scale) + offset ))
+			od[y*w] = 0;
+		else
+			od[y*w] = 255;
 	}
 
 	// main loop
@@ -409,13 +402,10 @@ d_boxfilter_y(guchar *id, guchar *od, int w, int h, int r, uint x, int offset, g
 		t += id[(y+r)*w];
 		t -= id[((y-r)*w)-w];
 		//od[y*w] = t * scale;
-		if ( do_bin) {
-			if ( tex2D(tex, x, y) < ((t * scale) + offset ))
-				od[y*w] = 0;
-			else
-				od[y*w] = 255;
-		} else
-			od[y*w] = t * scale;
+		if ( tex2D(tex, x, y) < ((t * scale) + offset ))
+			od[y*w] = 0;
+		else
+			od[y*w] = 255;
 	}
 
 	// do right edge
@@ -423,12 +413,9 @@ d_boxfilter_y(guchar *id, guchar *od, int w, int h, int r, uint x, int offset, g
 		t += id[(h-1)*w];
 		t -= id[((y-r)*w)-w];
 		//od[y*w] = t * scale;
-		if ( do_bin) {
-			if ( tex2D(tex, x, y) < ((t * scale) + offset ))
-				od[y*w] = 0;
-			else
-				od[y*w] = 255;
-		} else
-			od[y*w] = t * scale;
+		if ( tex2D(tex, x, y) < ((t * scale) + offset ))
+			od[y*w] = 0;
+		else
+			od[y*w] = 255;
 	}
 }

@@ -115,24 +115,24 @@ gboolean gicu_dialog (GimpDrawable *drawable) {
 	label_radius = gtk_label_new_with_mnemonic( "_Radius:");
 	gtk_box_pack_start( GTK_BOX( main_hbox), label_radius, FALSE, FALSE, 5);
 	gtk_label_set_justify( GTK_LABEL( label_radius), GTK_JUSTIFY_RIGHT);
-	gtk_widget_show( label_radius);
+// 	gtk_widget_show( label_radius);
 
 	spinbutton_radius = gimp_spin_button_new (
 			&spinbutton_adj_radius, filterParm.radius,
 			1, 255, 1, 0, 0, 5, 0);
 	gtk_box_pack_start( GTK_BOX( main_hbox), spinbutton_radius, FALSE, FALSE, 0);
-	gtk_widget_show( spinbutton_radius);
+// 	gtk_widget_show( spinbutton_radius);
 
 	label_offset = gtk_label_new_with_mnemonic( "_Offset:");
 	gtk_box_pack_start( GTK_BOX( main_hbox), label_offset, FALSE, FALSE, 5);
 	gtk_label_set_justify( GTK_LABEL( label_offset), GTK_JUSTIFY_RIGHT);
-	gtk_widget_show( label_offset);
+// 	gtk_widget_show( label_offset);
 
 	spinbutton_offset = gimp_spin_button_new (
 			&spinbutton_adj_offset, filterParm.offset,
 			1, 255, 1, 0, 0, 5, 0);
 	gtk_box_pack_start( GTK_BOX( main_hbox), spinbutton_offset, FALSE, FALSE, 0);
-	gtk_widget_show( spinbutton_offset);
+// 	gtk_widget_show( spinbutton_offset);
 
 	combo_box = gimp_int_combo_box_new (
 			("Grey"), GREY,
@@ -177,7 +177,7 @@ gboolean gicu_dialog (GimpDrawable *drawable) {
 	/* Set signals to the combobox */
 	/* Wenn sich wert aendert, filterparm speicher */
 	gimp_int_combo_box_connect(
-			GIMP_INT_COMBO_BOX( combo_box), 1, /* Default active value */
+			GIMP_INT_COMBO_BOX( combo_box), 2, /* Default active value */
 			G_CALLBACK( gimp_int_combo_box_get_active), &filterParm.cuda_filter);
 	g_signal_connect (
 			GIMP_INT_COMBO_BOX( combo_box), "changed",
