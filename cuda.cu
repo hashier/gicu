@@ -25,7 +25,7 @@ void filter(
 			break;
 
 		case BOXBIN:
-			d_boxfilter_x_tex<<< height / numThreads +1, numThreads >>>( d_image_temp, width, height, filterParm.radius);
+			d_boxfilter_x_tex<<< height / numThreads +0, numThreads >>>( d_image_temp, width, height, filterParm.radius);
 			d_boxfilter_y_global<<< width / numThreads +1, numThreads >>>( d_image_temp, d_image, width, height, filterParm.radius, filterParm.offset, TRUE);
 			break;
 
@@ -34,7 +34,7 @@ void filter(
 			break;
 
 		case BOX:
-			d_boxfilter_x_tex<<< height / numThreads +1, numThreads >>>( d_image_temp, width, height, filterParm.radius);
+			d_boxfilter_x_tex<<< height / numThreads +0, numThreads >>>( d_image_temp, width, height, filterParm.radius);
 			d_boxfilter_y_global<<< width / numThreads +1, numThreads >>>( d_image_temp, d_image, width, height, filterParm.radius, filterParm.offset, FALSE);
 			break;
 
