@@ -25,7 +25,10 @@ void filter(
 			break;
 
 		case BOXBIN:
-			d_boxfilter_x_tex<<< height / numThreads +0, numThreads >>>( d_image_temp, width, height, filterParm.radius);
+			/* TODO !!!!!
+			 * Richtiges Berechnen von +1 oder +0
+			 */
+			d_boxfilter_x_tex<<< height / numThreads +1, numThreads >>>( d_image_temp, width, height, filterParm.radius);
 			d_boxfilter_y_global<<< width / numThreads +1, numThreads >>>( d_image_temp, d_image, width, height, filterParm.radius, filterParm.offset, TRUE);
 			break;
 
@@ -34,7 +37,10 @@ void filter(
 			break;
 
 		case BOX:
-			d_boxfilter_x_tex<<< height / numThreads +0, numThreads >>>( d_image_temp, width, height, filterParm.radius);
+			/* TODO !!!!!
+			 * Richtiges Berechnen von +1 oder +0
+			 */
+			d_boxfilter_x_tex<<< height / numThreads +1, numThreads >>>( d_image_temp, width, height, filterParm.radius);
 			d_boxfilter_y_global<<< width / numThreads +1, numThreads >>>( d_image_temp, d_image, width, height, filterParm.radius, filterParm.offset, FALSE);
 			break;
 
@@ -363,12 +369,51 @@ d_boxfilter_x_tex( guchar *od, int w, int h, int r) {
 __global__ void
 d_boxfilter_y_global(guchar *id, guchar *od, int w, int h, int r, int offset, gboolean do_bin) {
 	unsigned int x = blockIdx.x*blockDim.x + threadIdx.x;
-	d_boxfilter_y(&id[x], &od[x], w, h, r, x, offset, do_bin );
+	if ( do_bin)
+		d_boxfilter_y_bin(&id[x], &od[x], w, h, r, x, offset);
+	else
+		d_boxfilter_y(&id[x], &od[x], w, h, r, x, offset);
 }
 
 // process column
 __device__ void
-d_boxfilter_y(guchar *id, guchar *od, int w, int h, int r, uint x, int offset, gboolean do_bin) {
+d_boxfilter_y(guchar *id, guchar *od, int w, int h, int r, uint x, int offset) {
+	float scale = 1.0f / (2*r+1);
+
+	float t;
+	// do left edge
+	t = id[0] * (r+1);
+	for (int y = 1; y <= r; y++) {
+		t += id[y*w];
+	}
+	// Average Filter
+	od[0] = t * scale;
+
+	for(int y = 1; y <= r; y++) {
+		t += id[(y+r)*w];
+		t -= id[0];
+		// Average Filter
+		od[y*w] = t * scale;
+	}
+
+	// main loop
+	for(int y = r+1; y < h-r; y++) {
+		t += id[(y+r)*w];
+		t -= id[((y-r)*w)-w];
+		od[y*w] = t * scale;
+	}
+
+	// do right edge
+	for (int y = h-r; y < h; y++) {
+		t += id[(h-1)*w];
+		t -= id[((y-r)*w)-w];
+		od[y*w] = t * scale;
+	}
+}
+
+// process column
+__device__ void
+d_boxfilter_y_bin(guchar *id, guchar *od, int w, int h, int r, uint x, int offset) {
 	float scale = 1.0f / (2*r+1);
 
 	float t;

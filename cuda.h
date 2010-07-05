@@ -20,7 +20,8 @@ __global__ void test  ( guchar* d_image, gint width, gint height, guint channels
 __global__ void sobelTex( guchar* d_image, gint width, gint height, guint channels, guint step, FilterParameter filterParm);
 __global__ void d_boxfilter_x_tex( guchar* od, int w, int h, int r);
 __global__ void d_boxfilter_y_global(guchar* id, guchar *od, int w, int h, int r, int offset, gboolean do_bin);
-__device__ void d_boxfilter_y(guchar* id, guchar* od, int w, int h, int r, uint x, int offset, gboolean do_bin);
+__device__ void d_boxfilter_y(guchar* id, guchar* od, int w, int h, int r, uint x, int offset);
+__device__ void d_boxfilter_y_bin(guchar *id, guchar *od, int w, int h, int r, uint x, int offset);
 
 extern "C" void cuda_init( );
 
