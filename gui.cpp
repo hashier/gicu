@@ -130,7 +130,7 @@ gboolean gicu_dialog (GimpDrawable *drawable) {
 
 	spinbutton_offset = gimp_spin_button_new (
 			&spinbutton_adj_offset, filterParm.offset,
-			1, 255, 1, 0, 0, 5, 0);
+			0, 255, 1, 0, 0, 5, 0);
 	gtk_box_pack_start( GTK_BOX( main_hbox), spinbutton_offset, FALSE, FALSE, 0);
 // 	gtk_widget_show( spinbutton_offset);
 
