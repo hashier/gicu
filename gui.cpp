@@ -56,6 +56,16 @@ static void add( GtkWidget *w) {
 			gtk_widget_set_visible( spinbutton_radius, FALSE);
 			break;
 
+		case AVERAGE:
+			filterParm.radius = 7;
+			gtk_label_set_text_with_mnemonic( GTK_LABEL( label_radius), "_Radius = FIX 7!");
+			gtk_label_set_text_with_mnemonic( GTK_LABEL( label_offset), "_Offset");
+			gtk_widget_set_visible( label_offset, FALSE);
+			gtk_widget_set_visible( spinbutton_offset, FALSE);
+			gtk_widget_set_visible( label_radius, TRUE);
+			gtk_widget_set_visible( spinbutton_radius, FALSE);
+			break;
+
 		default:
 			gtk_label_set_text_with_mnemonic( GTK_LABEL( label_radius), "_Radius");
 			gtk_label_set_text_with_mnemonic( GTK_LABEL( label_offset), "_Offset");
@@ -139,6 +149,7 @@ gboolean gicu_dialog (GimpDrawable *drawable) {
 			("Local Bin (Box)"), BOXBIN,
 			("Sobel"), SOBEL,
 			("Boxing"), BOX,
+			("Fast Average"), AVERAGE,
 			("Test"), TEST,
 			NULL);
 	gtk_box_pack_start( GTK_BOX( main_vbox), combo_box, FALSE, FALSE, 0);

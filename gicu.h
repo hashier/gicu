@@ -12,7 +12,8 @@ typedef enum _cuda_filter {
 	BOXBIN,
 	SOBEL,
 	BOX,
-	TEST
+	TEST,
+	AVERAGE
 } cuda_filter;
 
 
