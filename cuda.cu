@@ -109,12 +109,12 @@ extern "C" void bindTexture( ) {
 	cutilSafeCall( cudaBindTextureToArray( tex, array));
 }
 
-extern "C" void updateTexture( gint width, gint height, guchar *data, gint channel) {
+extern "C" void updateTexture( gint width, gint height, guchar *data, gint channels) {
 	cutilSafeCall(cudaMemcpyToArray(
 			array,
 			0, 0, /* 0 0 <- h und w offset */
 			data,
-			channel * sizeof( guchar) * width * height, cudaMemcpyHostToDevice));
+			channels * sizeof( guchar) * width * height, cudaMemcpyHostToDevice));
 }
 
 extern "C" void unbindTexture( ) {

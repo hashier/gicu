@@ -133,7 +133,7 @@ void run(
 	GimpRunMode run_mode;
 	GimpDrawable *drawable;
 
-	
+
 	/* Setting mandatory output values */
 	status = GIMP_PDB_SUCCESS;
 	*nreturn_vals = 1;

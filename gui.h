@@ -8,7 +8,21 @@
 
 #include "gicu.h"
 
+/**
+ * @brief Opens the pref. dialog
+ *
+ * Here you can set radius/offset/value
+ * depending on your choosen filter
+ */
 gboolean gicu_dialog (GimpDrawable *drawable);
+
+/**
+ * @brief Updates the spinners and labels
+ *
+ * This function has to be called every time the CUDA-Filter changes.
+ * It disables unneeded options
+ */
+static void add( GtkWidget *w);
 
 
 #endif
