@@ -23,10 +23,10 @@ __global__ void d_boxfilter_y_global(guchar* id, guchar *od, int w, int h, int r
 __device__ void d_boxfilter_y(guchar* id, guchar* od, int w, int h, int r, uint x, int offset);
 __device__ void d_boxfilter_y_bin(guchar *id, guchar *od, int w, int h, int r, uint x, int offset);
 __global__ void AVGShared(
-		uchar4 *pSobelOriginal, unsigned short SobelPitch,
+		uchar4 *pc, unsigned short step,
 		short BlockWidth, short SharedPitch,
 		short w, short h, float fScale,
-		int radiusAVG, int offset);
+		int radiusAVG, int offset, gboolean do_bin );
 
 extern "C" void cuda_init( );
 

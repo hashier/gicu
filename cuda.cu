@@ -53,7 +53,8 @@ void filter(
 			test<<< height, 384, 0 >>>( d_image, width, height, channels, step, filterParm);
 			break;
 
-		case AVERAGE: {
+		case AVERAGE:
+		case AVERAGEBIN: {
 			dim3 threads(16,16);
 			int BlockWidth = 32;
 
@@ -66,14 +67,14 @@ void filter(
 			if ( filterParm.radius != 7 )
 				printf("Wegen Optimierung ist nur Radius 7 Erlaubt in diesem Modus: Das zu sehende Bidl wird DEFINITIV Fehler enthalten\n");
 
-			printf("AVG_FILTER2: radiusAVG: %d  offset: %d  threads: %d,%d  blocks: %d,%d  SharedPitch: %d  sharedMem: %d\n",
+			printf("AVERAGE_FAST: radius: %d  offset: %d  threads: %d,%d  blocks: %d,%d  step: %d  sharedMem: %d\n",
 					filterParm.radius, filterParm.offset, threads.x, threads.y, blocks.x, blocks.y, SharedPitch, sharedMem);
 
 			AVGShared<<<blocks, threads, sharedMem>>>((uchar4 *) d_image,
 					width,
 					BlockWidth, SharedPitch,
 					width, height, fScale,
-					filterParm.radius, filterParm.offset);
+					filterParm.radius, filterParm.offset, ( filterParm.cuda_filter == AVERAGEBIN) );
 		}
 
 			break;
@@ -500,334 +501,346 @@ d_boxfilter_y_bin(guchar *id, guchar *od, int w, int h, int r, uint x, int offse
  * Reused Code
  */
 __global__ void
-AVGShared( uchar4 *pSobelOriginal, unsigned short SobelPitch,
-        short BlockWidth, short SharedPitch,
-        short w, short h, float fScale,
-        int radiusAVG, int offset) {
-    // pSobelOriginal > Pointer auf den Speicher in der Graka
-    // SobelPitch > 1280 (BilderBreite)
-    // BlockWidth > 80
-    // SharedPitch > 384
-    // w > 1280
-    // h > 1024
-    // sharedMem > 2304 >> 48 * 48 = 2304
-    // threads > 16,4
-    // block   > 4,256
-    // Radius 1 = Ich brauche links/rechts/oben/unten 1 extra pixel
-    // radius darf max die haelfte des Blockes sein in x und y
+AVGShared( uchar4 *pc, unsigned short step,
+		short BlockWidth, short SharedPitch,
+		short w, short h, float fScale,
+		int radius, int offset, gboolean do_bin) {
+	// pc > Pointer auf den Speicher in der Graka
+	// step > 1280 (BilderBreite)
+	// BlockWidth > 80
+	// SharedPitch > 384
+	// w > 1280
+	// h > 1024
+	// sharedMem > 2304 >> 48 * 48 = 2304
+	// threads > 16,4
+	// block   > 4,256
+	// Radius 1 = Ich brauche links/rechts/oben/unten 1 extra pixel
+	// radius darf max die haelfte des Blockes sein in x und y
 
-    // u und v sind die KOs des Pixels, das ich kopieren will
-    // u ist 4*80 = 320 -> 4*320 = 1280  -->  Der 320er Anfang jedes Blockes
-    // auf u (anfang des 320er Blockes) muss dann noch der Zu nehmende Pixel addiert werden
-    short u = 4*blockIdx.x*BlockWidth;
-    short v = blockIdx.y*blockDim.y + threadIdx.y;
-    short ib;
+	// u und v sind die KOs des Pixels, das ich kopieren will
+	// u ist 4*80 = 320 -> 4*320 = 1280  -->  Der 320er Anfang jedes Blockes
+	// auf u (anfang des 320er Blockes) muss dann noch der Zu nehmende Pixel addiert werden
+	short u = 4*blockIdx.x*BlockWidth;
+	short v = blockIdx.y*blockDim.y + threadIdx.y;
+	short ib;
 
-    // SharedIdx > Zeilenanfang vom SharedMem
-    // 384 > Zeilenbreite vom SharedMem
-    int SharedIdx = threadIdx.y * SharedPitch;
-
-
-    // ib geht komplett durch von 0-81
-    // ib geht 16er schritte
-    // 4*ib = 64
-    // damit hat man einheitliches lesen
-    // t0 liest 4byte
-    // t1 liest 4byte
-    // -> 16Threads a 4byte = 64byte
-    for ( ib = threadIdx.x; ib < BlockWidth+2*radiusAVG; ib += blockDim.x ) {
-        LocalBlock[SharedIdx+4*ib+0] = tex2D( tex,
-                (float) (u+4*ib-radiusAVG+0), (float) (v-radiusAVG) );
-        LocalBlock[SharedIdx+4*ib+1] = tex2D( tex,
-                (float) (u+4*ib-radiusAVG+1), (float) (v-radiusAVG) );
-        LocalBlock[SharedIdx+4*ib+2] = tex2D( tex,
-                (float) (u+4*ib-radiusAVG+2), (float) (v-radiusAVG) );
-        LocalBlock[SharedIdx+4*ib+3] = tex2D( tex,
-                (float) (u+4*ib-radiusAVG+3), (float) (v-radiusAVG) );
-    }
-    if ( threadIdx.y < radiusAVG*2 ) {
-        //
-        // copy trailing Radius*2 rows of pixels into shared
-        //
-        // bis v-Radius wurde alles kopiert, fehlt also noch 2*Radius
-        // also alle Werte nochmal gleich nur SharedIdx anpassen auf die richte Stelle
-        // und bei der y KO einfach blockDim.y uebrspringen weil die ja schon kopiert sind
-        // v-Radius .. v lief ja bis blockDim.y-1 (-Radius)
-        SharedIdx = (blockDim.y+threadIdx.y) * SharedPitch;
-        for ( ib = threadIdx.x; ib < BlockWidth+2*radiusAVG; ib += blockDim.x ) {
-            LocalBlock[SharedIdx+4*ib+0] = tex2D( tex,
-                    (float) (u+4*ib-radiusAVG+0), (float) (v+blockDim.y-radiusAVG) );
-            LocalBlock[SharedIdx+4*ib+1] = tex2D( tex,
-                    (float) (u+4*ib-radiusAVG+1), (float) (v+blockDim.y-radiusAVG) );
-            LocalBlock[SharedIdx+4*ib+2] = tex2D( tex,
-                    (float) (u+4*ib-radiusAVG+2), (float) (v+blockDim.y-radiusAVG) );
-            LocalBlock[SharedIdx+4*ib+3] = tex2D( tex,
-                    (float) (u+4*ib-radiusAVG+3), (float) (v+blockDim.y-radiusAVG) );
-        }
-    }
+	// SharedIdx > Zeilenanfang vom SharedMem
+	// 384 > Zeilenbreite vom SharedMem
+	int SharedIdx = threadIdx.y * SharedPitch;
 
 
-    __syncthreads();
+	// ib geht komplett durch von 0-81
+	// ib geht 16er schritte
+	// 4*ib = 64
+	// damit hat man einheitliches lesen
+	// t0 liest 4byte
+	// t1 liest 4byte
+	// -> 16Threads a 4byte = 64byte
+	for ( ib = threadIdx.x; ib < BlockWidth+2*radius; ib += blockDim.x ) {
+		LocalBlock[SharedIdx+4*ib+0] = tex2D( tex,
+				(float) (u+4*ib-radius+0), (float) (v-radius) );
+		LocalBlock[SharedIdx+4*ib+1] = tex2D( tex,
+				(float) (u+4*ib-radius+1), (float) (v-radius) );
+		LocalBlock[SharedIdx+4*ib+2] = tex2D( tex,
+				(float) (u+4*ib-radius+2), (float) (v-radius) );
+		LocalBlock[SharedIdx+4*ib+3] = tex2D( tex,
+				(float) (u+4*ib-radius+3), (float) (v-radius) );
+	}
+	if ( threadIdx.y < radius*2 ) {
+		//
+		// copy trailing Radius*2 rows of pixels into shared
+		//
+		// bis v-Radius wurde alles kopiert, fehlt also noch 2*Radius
+		// also alle Werte nochmal gleich nur SharedIdx anpassen auf die richte Stelle
+		// und bei der y KO einfach blockDim.y uebrspringen weil die ja schon kopiert sind
+		// v-Radius .. v lief ja bis blockDim.y-1 (-Radius)
+		SharedIdx = (blockDim.y+threadIdx.y) * SharedPitch;
+		for ( ib = threadIdx.x; ib < BlockWidth+2*radius; ib += blockDim.x ) {
+			LocalBlock[SharedIdx+4*ib+0] = tex2D( tex,
+					(float) (u+4*ib-radius+0), (float) (v+blockDim.y-radius) );
+			LocalBlock[SharedIdx+4*ib+1] = tex2D( tex,
+					(float) (u+4*ib-radius+1), (float) (v+blockDim.y-radius) );
+			LocalBlock[SharedIdx+4*ib+2] = tex2D( tex,
+					(float) (u+4*ib-radius+2), (float) (v+blockDim.y-radius) );
+			LocalBlock[SharedIdx+4*ib+3] = tex2D( tex,
+					(float) (u+4*ib-radius+3), (float) (v+blockDim.y-radius) );
+		}
+	}
 
 
-    u >>= 2;    // index as uchar4 from here
-    uchar4 *pSobel = (uchar4 *) (((char *) pSobelOriginal)+v*SobelPitch);
-    SharedIdx = threadIdx.y * SharedPitch;
+	__syncthreads();
 
 
-    unsigned char p;
-    int j,k;
+	u >>= 2;    // index as uchar4 from here
+	uchar4 *pSobel = (uchar4 *) (((char *) pc)+v*step);
+	SharedIdx = threadIdx.y * SharedPitch;
+
+
+	unsigned char p;
+	int j,k;
 
 
 
 
-    for ( ib = threadIdx.x; ib < BlockWidth; ib += blockDim.x ) {
+	for ( ib = threadIdx.x; ib < BlockWidth; ib += blockDim.x ) {
 
-        uchar4 out;
-        out.x = 10;
-        out.y = 80;
-        out.z = 160;
-        out.w = 254;
+		uchar4 out;
+		out.x = 10;
+		out.y = 80;
+		out.z = 160;
+		out.w = 254;
 
-        volatile int avg = 0;
-        volatile int avg1 = 0;
-        volatile int l0 = 0;
-        volatile int l1 = 0;
-        volatile int l2 = 0;
-        volatile int ll0 = 0;
-        volatile int ll1 = 0;
-        volatile int ll2 = 0;
+		volatile int avg = 0;
+		volatile int avg1 = 0;
+		volatile int l0 = 0;
+		volatile int l1 = 0;
+		volatile int l2 = 0;
+		volatile int ll0 = 0;
+		volatile int ll1 = 0;
+		volatile int ll2 = 0;
 
-        /* prob. the fasted, but not working ):
-        volatile int pixrm1 = 0;
-        volatile int pixrm2 = 0;
-        volatile int pixrm3 = 0;
-        volatile int avg = 0;
-        volatile int avg15 = 0;
-        volatile int avg16 = 0;
-        volatile int avg17 = 0;
+		/* prob. the fasted, but not working ):
+		volatile int pixrm1 = 0;
+		volatile int pixrm2 = 0;
+		volatile int pixrm3 = 0;
+		volatile int avg = 0;
+		volatile int avg15 = 0;
+		volatile int avg16 = 0;
+		volatile int avg17 = 0;
 
-        for ( j = 0; j < 15; j++) {
-            for ( k = 0; k < 15; k++) {
-                /*
-                if ( k == 15 ) {
-                    avg15 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
-                    continue;
-                } else if ( k == 16 ) {
-                    avg16 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
-                    continue;
-                } else if ( k == 17 ) {
-                    avg17 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
-                    continue;
-                }
-                */ /*
-                avg1 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
-                if ( k == 0 ) {
-                    pixrm1 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
-                } else if ( k == 1 ) {
-                    pixrm2 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
-                } else if ( k == 2 ) {
-                    pixrm3 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
-                }
-            }
-        }
-        p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+7];
-        if ( p  < ((avg / 225) + 5)) {
-            out.x = 0;
-        } else {
-            out.x = 255;
-        }
+		for ( j = 0; j < 15; j++) {
+			for ( k = 0; k < 15; k++) {
+				/*
+				if ( k == 15 ) {
+					avg15 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
+					continue;
+				} else if ( k == 16 ) {
+					avg16 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
+					continue;
+				} else if ( k == 17 ) {
+					avg17 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
+					continue;
+				}
+				*/ /*
+				avg1 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
+				if ( k == 0 ) {
+					pixrm1 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
+				} else if ( k == 1 ) {
+					pixrm2 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
+				} else if ( k == 2 ) {
+					pixrm3 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
+				}
+			}
+		}
+		p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+7];
+		if ( p  < ((avg / 225) + 5)) {
+			out.x = 0;
+		} else {
+			out.x = 255;
+		}
 
-        avg -= pixrm1;
+		avg -= pixrm1;
 
-        for ( j = 0; j < 15; j++) {
-            avg += LocalBlock[SharedIdx+4*ib+j*SharedPitch+15];
-        }
-        p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+8];
-        if ( p  < ((avg / 225) + 5)) {
-            out.y = 0;
-        } else {
-            out.y = 255;
-        }
+		for ( j = 0; j < 15; j++) {
+			avg += LocalBlock[SharedIdx+4*ib+j*SharedPitch+15];
+		}
+		p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+8];
+		if ( p  < ((avg / 225) + 5)) {
+			out.y = 0;
+		} else {
+			out.y = 255;
+		}
 
-        avg -= pixrm2;
+		avg -= pixrm2;
 
-        for ( j = 0; j < 15; j++) {
-            avg += LocalBlock[SharedIdx+4*ib+j*SharedPitch+15];
-        }
-        p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+9];
-        if ( p  < ((avg / 225) + 5)) {
-            out.z = 0;
-        } else {
-            out.z = 255;
-        }
+		for ( j = 0; j < 15; j++) {
+			avg += LocalBlock[SharedIdx+4*ib+j*SharedPitch+15];
+		}
+		p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+9];
+		if ( p  < ((avg / 225) + 5)) {
+			out.z = 0;
+		} else {
+			out.z = 255;
+		}
 
-        avg -= pixrm3;
+		avg -= pixrm3;
 
-        for ( j = 0; j < 15; j++) {
-            avg += LocalBlock[SharedIdx+4*ib+j*SharedPitch+15];
-        }
-        p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+10];
-        if ( p  < ((avg / 225) + 5)) {
-            out.w = 0;
-        } else {
-            out.w = 255;
-        }
+		for ( j = 0; j < 15; j++) {
+			avg += LocalBlock[SharedIdx+4*ib+j*SharedPitch+15];
+		}
+		p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+10];
+		if ( p  < ((avg / 225) + 5)) {
+			out.w = 0;
+		} else {
+			out.w = 255;
+		}
 */ /* prob. the fasted, but not working ): */
 
-        /* 3 bis 15 fuellen */
-        avg = 0;
-        avg1 = 0;
-        for ( j = 0; j < 15; j++) {
-            for ( k = 3; k < 15; k++) {
-                avg += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
-            }
-        }
+		/* 3 bis 15 fuellen */
+		avg = 0;
+		avg1 = 0;
+		for ( j = 0; j < 15; j++) {
+			for ( k = 3; k < 15; k++) {
+				avg += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
+			}
+		}
 
 
-        /* 0 1 2 und 15 16 17 fuellen */
-        for ( j = 0; j < 15; j++) {
-            l0 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+0];
-            l1 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+1];
-            l2 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+2];
+		/* 0 1 2 und 15 16 17 fuellen */
+		for ( j = 0; j < 15; j++) {
+			l0 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+0];
+			l1 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+1];
+			l2 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+2];
 
-            ll0 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+15];
-            ll1 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+16];
-            ll2 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+17];
-        }
+			ll0 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+15];
+			ll1 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+16];
+			ll2 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+17];
+		}
 
+		if ( do_bin) {
+			p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+7];
+			if ( p < (( (avg + l0 + l1 + l2) / 225 ) + offset ))
+				out.x = 0;
+			else
+				out.x = 255;
+		} else
+			out.x = (avg + l0 + l1 + l2) / 225;
 
-        p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+7];
-        if ( p < (( (avg + l0 + l1 + l2) / 225 ) + offset ))
-            out.x = 0;
-        else
-            out.x = 255;
+		if ( do_bin) {
+			p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+8];
+			if ( p < (( (avg + l1 + l2 + ll0) / 225 ) + offset ))
+				out.y = 0;
+			else
+				out.y = 255;
+		} else
+			out.y = (avg + l1 + l2 + ll0) / 225;
 
-        p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+8];
-        if ( p < (( (avg + l1 + l2 + ll0) / 225 ) + offset ))
-            out.y = 0;
-        else
-            out.y = 255;
+		if ( do_bin) {
+			p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+9];
+			if ( p < (( (avg + l2 + ll0 + ll1) / 225 ) + offset ))
+				out.z = 0;
+			else
+				out.z = 255;
+		} else
+			out.z = (avg + l2 + ll0 + ll1) / 225;
 
-        p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+9];
-        if ( p < (( (avg + l2 + ll0 + ll1) / 225 ) + offset ))
-            out.z = 0;
-        else
-            out.z = 255;
+		if ( do_bin) {
+			p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+10];
+			if ( p < (( (avg + ll0 + ll1 + ll2) / 225 ) + offset ))
+				out.w = 0;
+			else
+				out.w = 255;
+		} else
+			out.w = (avg + ll0 + ll1 + ll2) / 225;
 
-        p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+10];
-        if ( p < (( (avg + ll0 + ll1 + ll2) / 225 ) + offset ))
-            out.w = 0;
-        else
-            out.w = 255;
 
 /*
-        p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+7];
-        if ( p  < ((avg / 225) + 5)) {
-            out.x = 0;
-        } else {
-            out.x = 255;
-        }
+		p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+7];
+		if ( p  < ((avg / 225) + 5)) {
+			out.x = 0;
+		} else {
+			out.x = 255;
+		}
 
-        p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+8];
-        if ( p  < ((avg1 / 225) + 5)) {
-            out.y = 0;
-        } else {
-            out.y = 255;
-        }
+		p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+8];
+		if ( p  < ((avg1 / 225) + 5)) {
+			out.y = 0;
+		} else {
+			out.y = 255;
+		}
 
-        p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+9];
-        if ( p  < ((avg2 / 225) + 5)) {
-            out.z = 0;
-        } else {
-            out.z = 255;
-        }
+		p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+9];
+		if ( p  < ((avg2 / 225) + 5)) {
+			out.z = 0;
+		} else {
+			out.z = 255;
+		}
 
-        p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+10];
-        if ( p  < ((avg3 / 225) + 5)) {
-            out.w = 0;
-        } else {
-            out.w = 255;
-        }
+		p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+10];
+		if ( p  < ((avg3 / 225) + 5)) {
+			out.w = 0;
+		} else {
+			out.w = 255;
+		}
 */
 
 /*
-        for ( j = 0; j < 15; j++) {
-            for ( k = 15; k < 18; k++) {
-                if ( k == 15 ) {
-                    avg15 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
-                    continue;
-                } else if ( k == 16 ) {
-                    avg16 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
-                    continue;
-                } else if ( k == 17 ) {
-                    avg17 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
-                    continue;
-                }
-            }
-        }
+		for ( j = 0; j < 15; j++) {
+			for ( k = 15; k < 18; k++) {
+				if ( k == 15 ) {
+					avg15 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
+					continue;
+				} else if ( k == 16 ) {
+					avg16 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
+					continue;
+				} else if ( k == 17 ) {
+					avg17 += LocalBlock[SharedIdx+4*ib+j*SharedPitch+k];
+					continue;
+				}
+			}
+		}
 
-        avg15 += ((avg - pixrm1) / 225);
-        avg16 += ((avg15 - pixrm2) / 225);
-        avg17 += ((avg16 - pixrm3) / 225);
+		avg15 += ((avg - pixrm1) / 225);
+		avg16 += ((avg15 - pixrm2) / 225);
+		avg17 += ((avg16 - pixrm3) / 225);
 
-        p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+8];
-        if ( p  < (avg15 + 5) ) {
-            out.y = 0;
-        } else {
-            out.y = 255;
-        }
+		p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+8];
+		if ( p  < (avg15 + 5) ) {
+			out.y = 0;
+		} else {
+			out.y = 255;
+		}
 
-        p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+9];
-        if ( p  < (avg16 + 5)) {
-            out.z = 0;
-        } else {
-            out.z = 255;
-        }
+		p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+9];
+		if ( p  < (avg16 + 5)) {
+			out.z = 0;
+		} else {
+			out.z = 255;
+		}
 
-        p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+10];
-        if ( p  < (avg17 + 5)) {
-            out.w = 0;
-        } else {
-            out.w = 255;
-        }
+		p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+10];
+		if ( p  < (avg17 + 5)) {
+			out.w = 0;
+		} else {
+			out.w = 255;
+		}
 */
 
 /*
-        avg -= pixrm2;
+		avg -= pixrm2;
 
-        for ( j = 0; j < 15; j++) {
-            avg += LocalBlock[SharedIdx+4*ib+j*SharedPitch+16];
-        }
-        p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+9];
-        if ( p  < ((avg / 225) + 5)) {
-            out.z = 0;
-        } else {
-            out.z = 255;
-        }
+		for ( j = 0; j < 15; j++) {
+			avg += LocalBlock[SharedIdx+4*ib+j*SharedPitch+16];
+		}
+		p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+9];
+		if ( p  < ((avg / 225) + 5)) {
+			out.z = 0;
+		} else {
+			out.z = 255;
+		}
 
-        avg -= pixrm3;
+		avg -= pixrm3;
 
-        for ( j = 0; j < 15; j++) {
-            avg += LocalBlock[SharedIdx+4*ib+j*SharedPitch+17];
-        }
-        p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+10];
-        if ( p  < ((avg / 225) + 5)) {
-            out.w = 0;
-        } else {
-            out.w = 255;
-        }
+		for ( j = 0; j < 15; j++) {
+			avg += LocalBlock[SharedIdx+4*ib+j*SharedPitch+17];
+		}
+		p = LocalBlock[SharedIdx+4*ib+7*SharedPitch+10];
+		if ( p  < ((avg / 225) + 5)) {
+			out.w = 0;
+		} else {
+			out.w = 255;
+		}
 */
 
 
-        if ( u+ib < w/4 && v < h ) {
+		if ( u+ib < w/4 && v < h ) {
 #ifdef __DEVICE_EMULATION__
-            printf("1: Wert x: %d  Wert y: %d  Wert z: %d  Wert w: %d\n", out.x, out.y, out.z, out.w);
+			printf("1: Wert x: %d  Wert y: %d  Wert z: %d  Wert w: %d\n", out.x, out.y, out.z, out.w);
 #endif
-            pSobel[u+ib] = out;
-        }
+			pSobel[u+ib] = out;
+		}
 
-    }
+	}
 
-    __syncthreads();
+	__syncthreads();
 }

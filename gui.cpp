@@ -66,6 +66,16 @@ static void add( GtkWidget *w) {
 			gtk_widget_set_visible( spinbutton_radius, FALSE);
 			break;
 
+		case AVERAGEBIN:
+			filterParm.radius = 7;
+			gtk_label_set_text_with_mnemonic( GTK_LABEL( label_radius), "_Radius = FIX 7!");
+			gtk_label_set_text_with_mnemonic( GTK_LABEL( label_offset), "_Offset");
+			gtk_widget_set_visible( label_offset, TRUE);
+			gtk_widget_set_visible( spinbutton_offset, TRUE);
+			gtk_widget_set_visible( label_radius, TRUE);
+			gtk_widget_set_visible( spinbutton_radius, FALSE);
+			break;
+
 		default:
 			gtk_label_set_text_with_mnemonic( GTK_LABEL( label_radius), "_Radius");
 			gtk_label_set_text_with_mnemonic( GTK_LABEL( label_offset), "_Offset");
@@ -146,10 +156,11 @@ gboolean gicu_dialog (GimpDrawable *drawable) {
 
 	combo_box = gimp_int_combo_box_new (
 			("Grey"), GREY,
-			("Local Bin (Box)"), BOXBIN,
 			("Sobel"), SOBEL,
 			("Boxing"), BOX,
+			("Boxing (Bin)"), BOXBIN,
 			("Fast Average"), AVERAGE,
+			("Fast Average (Bin)"), AVERAGEBIN,
 			("Test"), TEST,
 			NULL);
 	gtk_box_pack_start( GTK_BOX( main_vbox), combo_box, FALSE, FALSE, 0);
@@ -188,7 +199,7 @@ gboolean gicu_dialog (GimpDrawable *drawable) {
 	/* Set signals to the combobox */
 	/* Wenn sich wert aendert, filterparm speicher */
 	gimp_int_combo_box_connect(
-			GIMP_INT_COMBO_BOX( combo_box), 2, /* Default active value */
+			GIMP_INT_COMBO_BOX( combo_box), 1, /* Default active value */
 			G_CALLBACK( gimp_int_combo_box_get_active), &filterParm.cuda_filter);
 	g_signal_connect (
 			GIMP_INT_COMBO_BOX( combo_box), "changed",
