@@ -21,7 +21,6 @@ FIND_PACKAGE(CUDA)
 
 IF ( NOT CUDA_TOOLKIT_ROOT_DIR)
 	SET( CUDA_TOOLKIT_ROOT_DIR
-		/media/HASSTICK/cuda
 		/afs/tu-bs.de/usr/usr53/y0053765/cuda/cuda
 		)
 ENDIF ( NOT CUDA_TOOLKIT_ROOT_DIR)
@@ -36,16 +35,13 @@ INCLUDE_DIRECTORIES(
 
 	/opt/cuda/sdk/C/common/inc
 
-	/afs/tu-bs.de/usr/usr53/y0053765/src/usr/include/gimp-2.0
-	/tmp/sdk/C/common/inc/
+	/afs/tu-bs.de/usr/usr53/y0053765/cuda/cuda/sdk/C/common/inc
 )
 
 INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
 
 CUDA_INCLUDE_DIRECTORIES (
 	/opt/cuda/sdk/C/common/inc
-
-	/tmp/sdk/C/common/inc
 	)
 
 LINK_DIRECTORIES(
@@ -67,3 +63,12 @@ TARGET_LINK_LIBRARIES( ${PROJECT_NAME} ${GTK2_LIBRARIES} ${CUDA_LIBRARIES} gimp-
 
 #INSTALL(FILES ${files} DESTINATION include)
 INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/gicu DESTINATION ~/.gimp-2.6/plug-ins/)
+
+# ON IBR MACHINES!!!!!!
+# ON IBR MACHINES!!!!!!
+# ON IBR MACHINES!!!!!!
+# ON IBR MACHINES!!!!!!
+# ON IBR MACHINES!!!!!!
+# run cmake and afterwards you have run ccmake and change the variable
+# CUDA_NVCC_FLAGS to:
+# --compiler-bindir=/usr/bin/gcc-4.3
