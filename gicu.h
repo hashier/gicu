@@ -5,12 +5,29 @@
 /* Gimp plug-in header */
 #include <libgimp/gimp.h>
 #include <libgimpwidgets/gimpwidgetstypes.h>
+#include "gui.h"
 
 /**
  * @mainpage Doxygen documentation for the gicu project
  *
  * This project was coded for<br>
- * <b>Praktische Aspekte der Informatik</b>
+ * <H2><b>Praktische Aspekte der Informatik - SoSe 2010</b></H2>
+ * <p>
+ * Prof. Dr.-Ing. Marcus Magnor<br>
+ * Christian Lipski
+ *
+ * <H2>How to implement another CUDA-Filter?</H2>
+ * <p><p>
+ * One has to alter 4 things in the Code
+ * <p>
+ * <b>1st:</b> Add an name to the enum _cuda_filter in gicu.h
+ * <p>
+ * <b>2nd:</b> Write the CUDA code in cuda.cu
+ * <p>
+ * <b>3rd:</b> Alter the update_gui function in gui.cpp and
+ * <p>
+ * <b>4th:</b> Add the new Filter name to the combobox so you can select it
+ * <p>
  */
 
 /**
@@ -28,11 +45,11 @@ typedef enum _cuda_filter {
 	TEST
 } cuda_filter;
 
-
 /**
- * @brief struct to save the parameters
+ * @brief Typedef struct to save all the information about the filter
  *
- * In this struct all information is stored which is needed to run the filters
+ * In this struct all the information are stored that is needed to run the filters.
+ * This includes radius, offset, preview on/off and the CUDA-Filter
  */
 typedef struct _FilterParameter {
 	/// The selected radius
@@ -45,7 +62,23 @@ typedef struct _FilterParameter {
 	enum _cuda_filter cuda_filter;
 } FilterParameter;
 
+/**
+ * @brief This var holds the all the config information 
+ *
+ * For more information see: typedef struct _FilterParameter
+ */
 extern FilterParameter filterParm;
+
+/**
+ * @brief Stores pointers to the important functions
+ *
+ * Which function to run
+ * - during initialization
+ * - quiting gimp
+ * - query
+ * - run
+ */
+extern GimpPlugInInfo PLUG_IN_INFO;
 
 /**
  * @brief this is run while gimps initialises the plug-ins

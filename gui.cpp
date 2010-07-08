@@ -7,8 +7,15 @@ static GtkWidget *spinbutton_radius;
 static GtkWidget *spinbutton_offset;
 static GtkWidget *combo_box;
 
-
-static void add( GtkWidget *w) {
+/**
+ * @brief Updates the gui (spinners, labels etc.)
+ *
+ * param[in] w the GtkWidget which caused the "trouble" (;
+ *
+ * This function has to be called every time the CUDA-Filter changes.
+ * It disables unneeded options
+ */
+static void update_gui( GtkWidget *w) {
 
 	int value = -1;
 
@@ -203,7 +210,7 @@ gboolean gicu_dialog (GimpDrawable *drawable) {
 			G_CALLBACK( gimp_int_combo_box_get_active), &filterParm.cuda_filter);
 	g_signal_connect (
 			GIMP_INT_COMBO_BOX( combo_box), "changed",
-			G_CALLBACK( add),
+			G_CALLBACK( update_gui),
 			NULL);
 
 

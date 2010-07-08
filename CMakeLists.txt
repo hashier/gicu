@@ -16,6 +16,12 @@ SET(CMAKE_CXX_FLAGS_DEBUG "-g -Wall")
 SET( ${PROJECT_NAME}_SRCS
 	gicu.cpp )
 
+#GCC 4.3
+#SET(CUDA_NVCC_FLAGS -keep "-use_fast_math;-arch=compute_12;-code=sm_12;-ccbin;/usr/bin/g++-4.3")
+#SET(CUDA_NVCC_FLAGS "--compiler-bindir=/usr/bin/gcc-4.3.4")
+#SET(CUDA_NVCC_FLAGS "--compiler-bindir=/usr/bin/gcc-4.3")
+
+
 FIND_PACKAGE(GTK2 COMPONENTS gtk)
 FIND_PACKAGE(CUDA)
 
@@ -72,3 +78,7 @@ INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/gicu DESTINATION ~/.gimp-2.6/plug-i
 # run cmake and afterwards you have run ccmake and change the variable
 # CUDA_NVCC_FLAGS to:
 # --compiler-bindir=/usr/bin/gcc-4.3
+MESSAGE(STATUS "Please compile with gcc 4.3.x... see CMakeLists.txt for more information")
+MESSAGE(STATUS "Please compile with gcc 4.3.x... see CMakeLists.txt for more information")
+MESSAGE(STATUS "Please compile with gcc 4.3.x... see CMakeLists.txt for more information")
+MESSAGE(STATUS "Please compile with gcc 4.3.x... see CMakeLists.txt for more information")
