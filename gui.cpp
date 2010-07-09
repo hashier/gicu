@@ -106,6 +106,8 @@ gboolean gicu_dialog (GimpDrawable *drawable) {
 	GtkObject *spinbutton_adj_offset;
 	gboolean   run;
 
+	int x1, y1, x2, y2, width;
+
 
 	gimp_ui_init ("gicu", FALSE);
 
@@ -219,6 +221,19 @@ gboolean gicu_dialog (GimpDrawable *drawable) {
 	gtk_widget_show( dialog);
 
 	run = ( gimp_dialog_run( GIMP_DIALOG( dialog)) == GTK_RESPONSE_OK);
+
+	gimp_drawable_mask_bounds(
+			drawable->drawable_id,
+			&x1, &y1,
+			&x2, &y2);
+	width  = x2 - x1;
+
+	if ( width % 4 ) {
+		if ( filterParm.cuda_filter == AVERAGE || filterParm.cuda_filter == AVERAGEBIN) {
+			g_message("Width is not a multiply of 4\n");
+			run = FALSE;
+		}
+	}
 
 	gtk_widget_destroy( dialog);
 
