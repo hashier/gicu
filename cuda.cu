@@ -58,20 +58,35 @@ void filter(
 
 		case AVERAGE:
 		case AVERAGEBIN: {
+			if ( width % 4) {
+				g_message("Width is not a multiply of 4\nThe resulting image will probably be f*ed up\n");
+			}
+
 			dim3 threads(16,16);
 			int BlockWidth = 32;
 
+			// 0==0 -> 1      0!=0 -> 0
+			// Image 1280 x 1024 -> 16,4 ThreadDim and 4,256 BlockDim
+			// SharedPitch -> 384
+			// sharedMem -> 2304
+			// SharedPitch ist durch 64Teilbar, Rechnung siehe unten bei iw&=~3
+			// 16 Threads * 4 Pixel = 64
 			dim3 blocks = dim3(width/(4*BlockWidth)+(0!=width%(4*BlockWidth)),
 					height/threads.y+(0!=height%threads.y));
 			int SharedPitch = ~0x3f&(4*(BlockWidth+2*filterParm.radius)+0x3f);
 			int sharedMem = SharedPitch*(threads.y+2*filterParm.radius);
+
+			// for the shared kernel, width must be divisible by 4
+			// 3 dec = 11bin
+			// ~3 dec = 00bin
+			// letze beiden stellen 0 -> durch 4 teilbar
 			width &= ~3;
 
 			if ( filterParm.radius != 7 )
 				printf("Wegen Optimierung ist nur Radius 7 Erlaubt in diesem Modus: Das zu sehende Bidl wird DEFINITIV Fehler enthalten\n");
 
-			printf("AVERAGE_FAST: radius: %d  offset: %d  threads: %d,%d  blocks: %d,%d  step: %d  sharedMem: %d\n",
-					filterParm.radius, filterParm.offset, threads.x, threads.y, blocks.x, blocks.y, SharedPitch, sharedMem);
+			printf("AVERAGE_FAST: radius: %d  offset: %d  threads: %d,%d  blocks: %d,%d  step: %d  sharedMem: %d  width: %d\n",
+					filterParm.radius, filterParm.offset, threads.x, threads.y, blocks.x, blocks.y, SharedPitch, sharedMem, width);
 
 			AVGShared<<<blocks, threads, sharedMem>>>((uchar4 *) d_image,
 					width,
