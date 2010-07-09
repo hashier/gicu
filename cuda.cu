@@ -18,9 +18,12 @@ void filter(
 		guchar *d_image, gint width, gint height,
 		guint channels, guchar *d_image_temp) {
 
+	int add = 0;
 	guint step = channels * width;
-	int x = 0, y = 0;
-	int numThreads = 64;
+
+	if ( width % numThreads || height % numThreads) {
+		add = 1;
+	}
 
 	switch ( filterParm.cuda_filter) {
 		case GREY:
@@ -31,8 +34,8 @@ void filter(
 			/* TODO !!!!!
 			 * Richtiges Berechnen von +1 oder +0
 			 */
-			d_boxfilter_x_tex<<< height / numThreads +1, numThreads >>>( d_image_temp, width, height, filterParm.radius);
-			d_boxfilter_y_global<<< width / numThreads +1, numThreads >>>( d_image_temp, d_image, width, height, filterParm.radius, filterParm.offset, TRUE);
+			d_boxfilter_x_tex<<< height / numThreads +add, numThreads >>>( d_image_temp, width, height, filterParm.radius);
+			d_boxfilter_y_global<<< width / numThreads +add, numThreads >>>( d_image_temp, d_image, width, height, filterParm.radius, filterParm.offset, TRUE);
 		}
 			break;
 
@@ -44,8 +47,8 @@ void filter(
 			/* TODO !!!!!
 			 * Richtiges Berechnen von +1 oder +0
 			 */
-			d_boxfilter_x_tex<<< height / numThreads +1, numThreads >>>( d_image_temp, width, height, filterParm.radius);
-			d_boxfilter_y_global<<< width / numThreads +1, numThreads >>>( d_image_temp, d_image, width, height, filterParm.radius, filterParm.offset, FALSE);
+			d_boxfilter_x_tex<<< height / numThreads +add, numThreads >>>( d_image_temp, width, height, filterParm.radius);
+			d_boxfilter_y_global<<< width / numThreads +add, numThreads >>>( d_image_temp, d_image, width, height, filterParm.radius, filterParm.offset, FALSE);
 		}
 			break;
 

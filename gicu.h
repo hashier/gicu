@@ -114,5 +114,12 @@ void run(
  */
 void cuda( GimpDrawable* drawable, GimpPreview* preview);
 
+/**
+ * @brief How many threads to use
+ *
+ * This is also needed for memory calculations
+ */
+extern int numThreads;
+
 
 #endif

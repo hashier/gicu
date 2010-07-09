@@ -43,6 +43,8 @@ GimpPlugInInfo PLUG_IN_INFO = {
 	run
 };
 
+int numThreads = 64;
+
 
 // Main
 MAIN()
@@ -247,7 +249,7 @@ void cuda( GimpDrawable *drawable, GimpPreview *preview) {
 
 	/* This is for better edges, but doesnt work at the moment */
 // 	size = ( w) * ( h) * channels;
-	size = width * height * channels;
+	size = (width+numThreads) * (height+numThreads) * channels;
 
 // putchar('\n');
 // g_print("r: %d\n", radius);
