@@ -31,9 +31,6 @@ void filter(
 			break;
 
 		case BOXBIN: {
-			/* TODO !!!!!
-			 * Richtiges Berechnen von +1 oder +0
-			 */
 			d_boxfilter_x_tex<<< height / numThreads +add, numThreads >>>( d_image_temp, width, height, filterParm.radius);
 			d_boxfilter_y_global<<< width / numThreads +add, numThreads >>>( d_image_temp, d_image, width, height, filterParm.radius, filterParm.offset, TRUE);
 		}
@@ -44,9 +41,6 @@ void filter(
 			break;
 
 		case BOX: {
-			/* TODO !!!!!
-			 * Richtiges Berechnen von +1 oder +0
-			 */
 			d_boxfilter_x_tex<<< height / numThreads +add, numThreads >>>( d_image_temp, width, height, filterParm.radius);
 			d_boxfilter_y_global<<< width / numThreads +add, numThreads >>>( d_image_temp, d_image, width, height, filterParm.radius, filterParm.offset, FALSE);
 		}
