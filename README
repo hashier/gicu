@@ -1,0 +1,7 @@
+as-is License
+
+If you want to use your graphics card in GIMP for some filters, this plug-in is for you.
+
+This plugin is easy to extend with your own filters for Gimp/CUDA.
+
+Read the Doxygen file for more information how to add new functions/filters.
